@@ -4,4 +4,4 @@ let
     url = info.url; 
     rev = info.rev;
   };
-in import location;
+in import location
