@@ -1,0 +1,33 @@
+{
+  "/nix/store/smr6niiz5faawda204pyrjml4bcykjwq-login-service.drv": {
+    "outputs": {
+      "out": { "path": "/nix/store/mzj80cp56m8iv3vk31an5mn8qz853fj1-login-service" }
+    },
+    "inputSrcs": [
+      "/nix/store/f3y1daayxbvrcf0gg0ajv47vp8wnmdfc-LoginService.java",
+      "/nix/store/r1ry89dsrkpzxnxhhfxjc4h9h303nfnp-builder.sh"
+    ],
+    "inputDrvs": [
+      "/nix/store/2zlf5pjnjcl27cbyadpmi1fm3344sxhc-bash-4.4-p23.drv",
+      "/nix/store/9fwqv46f34zkhm1l9k59ysgmvrq5sh0i-jzmq-3.1.0.drv",
+      "/nix/store/q80in7habv0hgjpmi85c2bwji6i2qigj-openjdk-8u172b11.drv",
+      "/nix/store/wx2jvlb6drf1q96kxm3q9lgr6zdq9fjn-coreutils-8.29.drv"
+    ],
+    "platform": "x86_64-linux",
+    "builder": "/nix/store/8zkg9ac4s4alzyf4a8kfrig1j73z66dw-bash-4.4-p23/bin/bash",
+    "args": [
+      "/nix/store/r1ry89dsrkpzxnxhhfxjc4h9h303nfnp-builder.sh"
+    ],
+    "env": {
+      "builder": "/nix/store/8zkg9ac4s4alzyf4a8kfrig1j73z66dw-bash-4.4-p23/bin/bash",
+      "coreutils": "/nix/store/n7qp8pffvcb5ff52l2nrc3g2wvxfrk75-coreutils-8.29",
+      "jre": "/nix/store/v5ldrip7lcvg8ni6m5j4a3zlg5sdck3l-openjdk-8u172b11-jre",
+      "jzmq": "/nix/store/hillpqvv8szl7sh49pbba3nqfbp10fwk-jzmq-3.1.0",
+      "name": "login-service",
+      "openjdk": "/nix/store/8nllmcl8w6ihippqdxf4sbhg3bqmy97v-openjdk-8u172b11",
+      "out": "/nix/store/mzj80cp56m8iv3vk31an5mn8qz853fj1-login-service",
+      "src": "/nix/store/f3y1daayxbvrcf0gg0ajv47vp8wnmdfc-LoginService.java",
+      "system": "x86_64-linux"
+    }
+  }
+}

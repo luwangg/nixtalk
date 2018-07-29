@@ -13,6 +13,71 @@
       span.underline{text-decoration: underline;}
       div.column{display: inline-block; vertical-align: top; width: 50%;}
   </style>
+  <style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; position: absolute; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource a.sourceLine:empty
+  { position: absolute; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
   <link rel="stylesheet" type="text/css" media="screen, projection, print"
     href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
   <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
@@ -28,6 +93,7 @@
 <li>You’re a developer at a big bank.</li>
 <li>You have packages with complex dependencies</li>
 <li>You want the assurance that if package builds on your machine, it builds in CI, and in production</li>
+<li>You’re a developer at a big bank.</li>
 <li><em>High assurance</em></li>
 </ul>
 </div>
@@ -43,27 +109,215 @@
 <div class="slide section level1">
 
 </div>
-<div id="packaging-problems" class="slide section level1">
-<h1>Packaging problems</h1>
+<div id="build-problems" class="slide section level1">
+<h1>Build problems</h1>
 <h2 id="a-current-state-of-affairs---raise-hands-if-you-had-one-of-these-issues">A current state of affairs - (Raise hands if you had one of these issues!)</h2>
 <ul class="incremental">
-<li>I install a project but it doesn’t compile, whilst it did install on a collegues machine</li>
+<li>I build a project but it doesn’t compile, whilst it did build on a collegues machine</li>
 <li>I modified some file like <code>/etc/nginx/nginx.conf</code> and now <code>apt upgrade</code> aborts, because it tries to override an existing file.</li>
 <li>Computer runs out of battery during <code>apt upgrade</code>, and now my whole system is F*$#kd</li>
+<li>My package manager has language version X, but I need language version Y</li>
 </ul>
 </div>
-<div id="packaging-problems-1" class="slide section level1">
-<h1>Packaging problems</h1>
+<div id="build-problems-1" class="slide section level1">
+<h1>Build problems</h1>
 <h2 id="what-is-the-root-cause-of-all-these-issues">What is the root cause of all these issues?</h2>
+<p><img src="current-flow.png" width="80%"></p>
+</div>
+<div id="what-do-we-want" class="slide section level1">
+<h1>What do we want?</h1>
 <ul class="incremental">
-<li><img src="current-flow.png" title="fig:" alt="Mutability" /></li>
+<li>Reliable builds
+<ul class="incremental">
+<li>If it builds on my machine, it should build on any machine</li>
+</ul></li>
+<li>Isolation
+<ul class="incremental">
+<li>Multiple versions of the same software should be able to run next to each other</li>
+</ul></li>
+<li>Atomic updates
+<ul class="incremental">
+<li>You either install something completely, or you do not install it al all</li>
+</ul></li>
 </ul>
 </div>
 <div id="solution" class="slide section level1">
 <h1>Solution</h1>
+<center>
+<img src="Docker-logo-011.png" width="50%">
+</center>
+<blockquote>
+<p>Just put it in a damn container - <b>Lucas</b></p>
+</blockquote>
+</div>
+<div id="solution-docker" class="slide section level1">
+<h1>Solution? Docker</h1>
 <ul class="incremental">
-<li>Immutability image</li>
+<li>Docker is a distribution format and execution method</li>
+<li>It does not solve the problem of reliable builds</li>
+<li></li>
 </ul>
+</div>
+<div id="docker" class="slide section level1">
+<h1>Docker</h1>
+<ul class="incremental">
+<li>Solves the ‘works on my machine’ problem by shipping container artifacts from dev/CI to production</li>
+<li>Does <em>not</em> solve the ‘compiles on my machine’ problem.<br />
+</li>
+<li>Two people with the same Dockerfile, are not guarenteed to both succesfully build the project</li>
+</ul>
+</div>
+<div id="solution-functional-flow" class="slide section level1">
+<h1>Solution: Functional flow</h1>
+<p><img src="desired-flow.png" width="80%"></p>
+</div>
+<div id="the-nix-package-manager" class="slide section level1">
+<h1>The Nix Package Manager</h1>
+<ul class="incremental">
+<li>Purely functional</li>
+<li>Atomic</li>
+<li>Reproducible</li>
+<li>Packages described in the declarative “Nix Programming Language”</li>
+</ul>
+</div>
+<div id="the-nix-package-manager-1" class="slide section level1">
+<h1>The Nix Package Manager</h1>
+</div>
+<div id="using-nix-for-day-to-day-use" class="slide section level1">
+<h1>Using Nix for day to day use</h1>
+<ul class="incremental">
+<li>You can use Nix as a replacement for <code>apt</code> or <code>homebrew</code></li>
+</ul>
+</div>
+<div class="slide section level1">
+
+</div>
+<div id="the-nix-programming-language" class="slide section level1">
+<h1>The nix programming language</h1>
+<ul class="incremental">
+<li>Think of it as JSON with templates and functions</li>
+<li>Used to describe package derivations</li>
+<li>Show around a little bit in the repl</li>
+</ul>
+</div>
+<div id="our-first-package" class="slide section level1">
+<h1>Our first package</h1>
+<h2 id="java-login-frontend-of-our-bank">Java Login frontend of our bank</h2>
+<ul class="incremental">
+<li>Use imagination such that this is a Spring enterprise web servlet in the cloud</li>
+</ul>
+<div class="sourceCode" id="cb1"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">import</span><span class="im"> org.zeromq.ZMQ;</span></a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">import</span><span class="im"> java.nio.charset.StandardCharsets;</span></a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">public</span> <span class="kw">class</span> LoginService {</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[]args) {</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">    ZMQ.<span class="fu">Context</span> ctx = ZMQ.<span class="fu">context</span>(<span class="dv">1</span>);</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">    ZMQ.<span class="fu">Socket</span> sock = ctx.<span class="fu">socket</span>(ZMQ.<span class="fu">REQ</span>);</a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">    sock.<span class="fu">connect</span>(<span class="st">&quot;tcp://127.0.0.1:1234&quot;</span>);</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">    <span class="dt">byte</span>[] msg = <span class="st">&quot;arian       @r1aN&quot;</span>.<span class="fu">getBytes</span>(StandardCharsets.<span class="fu">UTF_8</span>);</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">    sock.<span class="fu">send</span>(msg, <span class="dv">0</span>, <span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">    <span class="dt">byte</span>[] resp = sock.<span class="fu">recv</span>(<span class="dv">0</span>);</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">    <span class="bu">String</span> s = <span class="kw">new</span> <span class="bu">String</span>(resp, StandardCharsets.<span class="fu">UTF_8</span>);</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">    <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(s);</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">  }</a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">}</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16"></a></code></pre></div>
+</div>
+<div id="our-first-package-1" class="slide section level1">
+<h1>Our first package</h1>
+<table>
+<tr>
+<td>
+<div class="sourceCode" id="cb2"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co"># default.nix</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="bu">let</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="ex">pkgs</span> = import ../nixpkgs.nix<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="kw">in</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="ex">derivation</span> {</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">    <span class="ex">builder</span> = <span class="st">&quot;</span><span class="va">${pkgs</span><span class="er">.bash</span><span class="va">}</span><span class="st">/bin/bash&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">    <span class="ex">args</span> = [ ./builder.sh ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">    <span class="ex">src</span> = ./LoginService.java<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">    <span class="ex">coreutils</span> = pkgs.coreutils<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">    <span class="ex">openjdk</span> = pkgs.openjdk<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">    <span class="ex">jre</span> = pkgs.jre<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">    <span class="ex">jzmq</span> = pkgs.jzmq<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">    <span class="ex">system</span> = builtins.currentSystem<span class="kw">;</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">  }</a></code></pre></div>
+</td>
+<td>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co"># builder.sh</span></a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="bu">export</span> <span class="va">PATH=$coreutils</span>/bin:<span class="va">$openjdk</span>/bin</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="fu">cp</span> <span class="va">$src</span> LoginService.java</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="ex">javac</span> -cp <span class="va">$jzmq</span>/share/java/zmq.jar LoginService.java</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="ex">jar</span> cfe LoginService.jar LoginService LoginService.class</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="fu">mkdir</span> <span class="va">$out</span></a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="fu">cp</span> LoginService.jar <span class="va">$out</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="fu">cat</span> <span class="op">&lt;&lt;EOF</span> <span class="op">&gt;&gt;</span> <span class="va">$out</span><span class="ex">/login-service</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9">#!/{pkgs.bash}</a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="va">$jre</span>/bin/java -Djava.library.path=&quot;<span class="va">$jzmq</span>/lib&quot; \</a>
+<a class="sourceLine" id="cb3-11" data-line-number="11">  -cp &quot;<span class="va">$jzmq</span>/share/java/zmq.jar:<span class="va">$out</span>/LoginService.jar&quot; \</a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">  LoginService</a>
+<a class="sourceLine" id="cb3-13" data-line-number="13">EOF</a>
+<a class="sourceLine" id="cb3-14" data-line-number="14">chmod +x <span class="va">$out</span>/login-service</a></code></pre></div>
+</td>
+</tr>
+</table>
+</div>
+<div id="what-is-a-derivation" class="slide section level1">
+<h1>What is a derivation?</h1>
+<table>
+<tr>
+<td>
+<div class="sourceCode" id="cb4"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co"># default.nix</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="bu">let</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="ex">pkgs</span> = import ../nixpkgs.nix<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="kw">in</span></a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">  <span class="ex">derivation</span> {</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">    <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">    <span class="ex">builder</span> = <span class="st">&quot;</span><span class="va">${pkgs</span><span class="er">.bash</span><span class="va">}</span><span class="st">/bin/bash&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8">    <span class="ex">args</span> = [ ./builder.sh ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9">    <span class="ex">src</span> = ./LoginService.java<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10">    <span class="ex">coreutils</span> = pkgs.coreutils<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11">    <span class="ex">openjdk</span> = pkgs.openjdk<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-12" data-line-number="12">    <span class="ex">jre</span> = pkgs.jre<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="ex">jzmq</span> = pkgs.jzmq<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14">    <span class="ex">system</span> = builtins.currentSystem<span class="kw">;</span></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15">  }</a></code></pre></div>
+</td>
+<td>
+<div class="sourceCode" id="cb5"><pre class="sourceCode json"><code class="sourceCode json"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="fu">{</span> </a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">  <span class="dt">&quot;/nix/store/smr6-login-service.drv&quot;</span><span class="fu">:</span> <span class="fu">{</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">    <span class="dt">&quot;outputs&quot;</span><span class="fu">:</span> <span class="fu">{</span></a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">      <span class="dt">&quot;out&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;/nix/store/mzj8-login-service&quot;</span> <span class="fu">}</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">    <span class="fu">},</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6">    <span class="dt">&quot;inputSrcs&quot;</span><span class="fu">:</span> <span class="ot">[</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7">      <span class="st">&quot;/nix/store/f3y1-LoginService.java&quot;</span><span class="ot">,</span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8">      <span class="st">&quot;/nix/store/r1ry-builder.sh&quot;</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9">    <span class="ot">]</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10">    <span class="dt">&quot;inputDrvs&quot;</span><span class="fu">:</span> <span class="ot">[</span> </a>
+<a class="sourceLine" id="cb5-11" data-line-number="11">      <span class="st">&quot;/nix/store/2zlf-bash-4.4-p23.drv&quot;</span><span class="ot">,</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12">      <span class="st">&quot;/nix/store/9fwq-jzmq-3.1.0.drv&quot;</span><span class="ot">,</span></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13">      <span class="st">&quot;/nix/store/q80i-openjdk-8u172b11.drv&quot;</span><span class="ot">,</span></a>
+<a class="sourceLine" id="cb5-14" data-line-number="14">      <span class="st">&quot;/nix/store/wx2j-coreutils-8.29.drv&quot;</span></a>
+<a class="sourceLine" id="cb5-15" data-line-number="15">    <span class="ot">]</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-16" data-line-number="16">    <span class="dt">&quot;builder&quot;</span><span class="fu">:</span> <span class="st">&quot;/nix/store/8zkg-bash-4.4-p23/bin/bash&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-17" data-line-number="17">    <span class="dt">&quot;args&quot;</span><span class="fu">:</span> <span class="ot">[</span>  <span class="st">&quot;/nix/store/r1ry-builder.sh&quot;</span> <span class="ot">]</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-18" data-line-number="18">    <span class="dt">&quot;env&quot;</span><span class="fu">:</span> <span class="fu">{</span></a>
+<a class="sourceLine" id="cb5-19" data-line-number="19">      <span class="dt">&quot;builder&quot;</span><span class="fu">:</span>   <span class="st">&quot;/nix/store/8zkg-bash-4.4-p23/bin/bash&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-20" data-line-number="20">      <span class="dt">&quot;coreutils&quot;</span><span class="fu">:</span> <span class="st">&quot;/nix/store/n7qp-coreutils-8.29&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-21" data-line-number="21">      <span class="dt">&quot;jre&quot;</span><span class="fu">:</span>       <span class="st">&quot;/nix/store/v5ld-openjdk-8u172b11-jre&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-22" data-line-number="22">      <span class="dt">&quot;openjdk&quot;</span><span class="fu">:</span>   <span class="st">&quot;/nix/store/8nll-openjdk-8u172b11&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-23" data-line-number="23">      <span class="dt">&quot;jzmq&quot;</span><span class="fu">:</span>      <span class="st">&quot;/nix/store/hill-jzmq-3.1.0&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-24" data-line-number="24">      <span class="dt">&quot;out&quot;</span><span class="fu">:</span>       <span class="st">&quot;/nix/store/mzj8-login-service&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-25" data-line-number="25">      <span class="dt">&quot;src&quot;</span><span class="fu">:</span>       <span class="st">&quot;/nix/store/f3y1-LoginService.java&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-26" data-line-number="26">      <span class="dt">&quot;name&quot;</span><span class="fu">:</span>      <span class="st">&quot;login-service&quot;</span><span class="fu">,</span></a>
+<a class="sourceLine" id="cb5-27" data-line-number="27">      <span class="dt">&quot;system&quot;</span><span class="fu">:</span> <span class="st">&quot;x86_64-linux&quot;</span></a>
+<a class="sourceLine" id="cb5-28" data-line-number="28">    <span class="fu">}</span> </a>
+<a class="sourceLine" id="cb5-29" data-line-number="29">  <span class="fu">}</span></a>
+<a class="sourceLine" id="cb5-30" data-line-number="30"><span class="fu">}</span></a></code></pre></div>
+</td>
+</tr>
+</table>
 </div>
 <div id="nixos---a-configuration-management-tool" class="slide section level1">
 <h1>NixOS - A configuration management tool</h1>
