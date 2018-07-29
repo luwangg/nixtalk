@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title>Nix Package manager</title>
+  <style type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <link rel="stylesheet" type="text/css" media="screen, projection, print"
+    href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+    charset="utf-8" type="text/javascript"></script>
+</head>
+<body>
+<div class="slide titlepage">
+  <h1 class="title">Nix Package manager</h1>
+</div>
+<div id="our-story" class="slide section level1">
+<h1>Our story</h1>
+<ul class="incremental">
+<li>You’re a developer at a big bank.</li>
+<li>You have packages with complex dependencies</li>
+<li>You want the assurance that if package builds on your machine, it builds in CI, and in production</li>
+<li><em>High assurance</em></li>
+</ul>
+</div>
+<div id="our-mission" class="slide section level1">
+<h1>Our Mission</h1>
+<ul class="incremental">
+<li>We’re maintainers of a legacy COBOL codebase, which handles authentication within the bank</li>
+<li>Company is moving to <em>micro services</em> architecture, because manager says so</li>
+<li>Other applications written in <em>Python</em> and <em>Java</em></li>
+<li>We’re responsible for <em>smooth</em> releases</li>
+</ul>
+</div>
+<div class="slide section level1">
+
+</div>
+<div id="packaging-problems" class="slide section level1">
+<h1>Packaging problems</h1>
+<h2 id="a-current-state-of-affairs---raise-hands-if-you-had-one-of-these-issues">A current state of affairs - (Raise hands if you had one of these issues!)</h2>
+<ul class="incremental">
+<li>I install a project but it doesn’t compile, whilst it did install on a collegues machine</li>
+<li>I modified some file like <code>/etc/nginx/nginx.conf</code> and now <code>apt upgrade</code> aborts, because it tries to override an existing file.</li>
+<li>Computer runs out of battery during <code>apt upgrade</code>, and now my whole system is F*$#kd</li>
+</ul>
+</div>
+<div id="packaging-problems-1" class="slide section level1">
+<h1>Packaging problems</h1>
+<h2 id="what-is-the-root-cause-of-all-these-issues">What is the root cause of all these issues?</h2>
+<ul class="incremental">
+<li><img src="current-flow.png" title="fig:" alt="Mutability" /></li>
+</ul>
+</div>
+<div id="solution" class="slide section level1">
+<h1>Solution</h1>
+<ul class="incremental">
+<li>Immutability image</li>
+</ul>
+</div>
+<div id="nixos---a-configuration-management-tool" class="slide section level1">
+<h1>NixOS - A configuration management tool</h1>
+<h2 id="problems-with-existing-tools-like-chef-ansible-puppet">Problems with existing tools like Chef / Ansible / Puppet</h2>
+<ul class="incremental">
+<li>Just like with package management, output state depends on current state</li>
+<li>Your playbooks might depend on implicit state</li>
+<li>Playbooks might diverge with what is actually on the system</li>
+<li>Package manager might even <em>fight</em> against the configuration manager!</li>
+</ul>
+</div>
+<div id="nixos---a-configuration-management-tool-1" class="slide section level1">
+<h1>NixOS - A configuration management tool</h1>
+<h2 id="anecdote">Anecdote</h2>
+<ul class="incremental">
+<li>Ansible modifies <code>/etc/nginx/nginx.conf</code></li>
+<li>Ansible enabled auto upgrades of packages</li>
+<li>Upgrade of apt overrides `/etc/nginx/nginx.conf</li>
+<li>Stuff silently fails</li>
+<li>Rerun ansible, stuff converges again…</li>
+</ul>
+</div>
+<div id="nixos---a-configuration-management-tool-2" class="slide section level1">
+<h1>NixOS - A configuration management tool</h1>
+<p>Okay, we need to add code example here.</p>
+</div>
+<div id="nixos---a-configuration-management-tool-3" class="slide section level1">
+<h1>NixOS - A configuration management tool</h1>
+<ul class="incremental">
+<li>Reliable upgrades &amp; consistency</li>
+<li>Immutable OS, pinned to a specific git commit in your repo</li>
+<li>Atomic upgrades and rollback (Your OS is just another Nix package!)</li>
+<li>INFRASTRUCTURE AS CODE. TRULY</li>
+</ul>
+</div>
+<div id="nixos---a-configuration-management-tool-4" class="slide section level1">
+<h1>NixOS - A Configuration management tool</h1>
+<ul class="incremental">
+<li>Downside: You need to fully buy into Nix. hard to sell?</li>
+<li>In that case, just build Docker containers instead, like shown before</li>
+<li>Could for example us NixOS, to set up your kubernetes cluster</li>
+<li>Other collegues can keep existing Docker based images</li>
+<li>You can use Nix</li>
+</ul>
+</div>
+<div id="nixops---infrastructure-management-tool" class="slide section level1">
+<h1>NixOps - infrastructure management tool</h1>
+<ul class="incremental">
+<li>Again, same problems of package mangement, arise in infrastructure management</li>
+<li>Before, people click around UI to create things</li>
+<li>Now, a pure function from datacenter description, to an actual datacenter!</li>
+<li>Create NixOS VMs</li>
+<li>… Load balancers</li>
+<li>… DNS Records</li>
+<li>… Storage buckets</li>
+</ul>
+</div>
+<div id="downsides-of-nix" class="slide section level1">
+<h1>Downsides of Nix</h1>
+<ul class="incremental">
+<li>Steep learning curve. Thinking functionally is something to get used to</li>
+<li>You <em>Can not</em> do dirty hacks. You can’t go monkeypatch some python package in <code>/usr/lib/python</code>, or update <code>/etc/hosts</code> manually</li>
+<li>Ok.. maybe the above is a Pro. But it forces you to do things properly. Which might be slow</li>
+<li>Install can get large, as multiple people have multiple versions of packages</li>
+<li>Documentation is … not always great. “Read the source code” is a common philosophy among Nix’ers</li>
+<li>However, this forces you to actually learn the tool, and gives great flexibility to you</li>
+</ul>
+</div>
+<div id="questions" class="slide section level1">
+<h1>Questions?</h1>
+<ul class="incremental">
+<li><a href="https://nixos.org/nixos/nix-pills">https://nixos.org/nixos/nix-pills - Tutorial to get up to speed quickly with how nix works</a></li>
+<li><a href="https://nixos.org/nix" class="uri">https://nixos.org/nix</a></li>
+<li><a href="https://nixos.org/nixos" class="uri">https://nixos.org/nixos</a></li>
+<li><a href="https://nixos.org/nixops" class="uri">https://nixos.org/nixops</a></li>
+<li><a href="https://github.com/nixos" class="uri">https://github.com/nixos</a></li>
+<li><a href="https://twitter.com/ProgrammerDude">@ProgrammerDude - Stalk me on Twitter</a></li>
+<li><a href="https://github.com/arianvp">https://github.com/arianvp - Stalk me on Github</a></li>
+</ul>
+</div>
+</body>
+</html>

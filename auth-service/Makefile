@@ -1,4 +1,6 @@
-auth:
-	cobc -x -o auth auth.cob -lzmq
-install: auth
-	install auth "${out}"
+auth-service:
+	cobc -x auth.cob -lzmq -o auth-service
+
+install: auth-service
+	mkdir -p "${out}/bin"
+	install auth-service "${out}"/bin/auth-service
