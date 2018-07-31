@@ -1,5 +1,5 @@
 slides.html: slides.md
-	pandoc -i -s -t slidy slides.md -o slides.html
+	pandoc -s -t slidy slides.md -o slides.html
 
 install: slides.html
 	mkdir -p ${out}/share/domcode-slides

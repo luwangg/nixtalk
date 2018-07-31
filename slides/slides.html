@@ -6,6 +6,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
+  <meta name="author" content="Arian van Putten" />
   <title>Nix Package manager</title>
   <style type="text/css">
       code{white-space: pre-wrap;}
@@ -86,63 +87,718 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <body>
 <div class="slide titlepage">
   <h1 class="title">Nix Package manager</h1>
+  <p class="author">
+Arian van Putten
+  </p>
 </div>
-<div id="our-story" class="slide section level1">
-<h1>Our story</h1>
+<div id="assumptions-about-my-audience" class="slide section level1">
+<h1>Assumptions about my audience</h1>
+<div>
 <ul class="incremental">
-<li>You’re a developer at a big bank.</li>
-<li>You have packages with complex dependencies</li>
-<li>You want the assurance that if package builds on your machine, it builds in CI, and in production</li>
-<li>You’re a developer at a big bank.</li>
-<li><em>High assurance</em></li>
+<li>Used a GNU/Linux based OS like Ubuntu before?</li>
+<li>If not, used Homebrew on Mac OS X before?</li>
+<li>Familiar with Git?</li>
+<li>Used Docker before? Hobby / Professional?</li>
+<li>Familiar with / Heard of Nix?</li>
 </ul>
 </div>
-<div id="our-mission" class="slide section level1">
-<h1>Our Mission</h1>
+</div>
+<div id="ask-questions" class="slide section level1">
+<h1>Ask questions!</h1>
+<div>
 <ul class="incremental">
-<li>We’re maintainers of a legacy COBOL codebase, which handles authentication within the bank</li>
-<li>Company is moving to <em>micro services</em> architecture, because manager says so</li>
-<li>Other applications written in <em>Python</em> and <em>Java</em></li>
-<li>We’re responsible for <em>smooth</em> releases</li>
+<li>If something isn’t clear. Interrupt me</li>
+<li>No really… Interrupt me</li>
+<li><p>We’re gonna have fun either way</p></li>
+<li>Oh and I lied about the rafflers… because rafflers don’t have many dependencies!</li>
 </ul>
 </div>
-<div class="slide section level1">
-
 </div>
 <div id="build-problems" class="slide section level1">
 <h1>Build problems</h1>
 <h2 id="a-current-state-of-affairs---raise-hands-if-you-had-one-of-these-issues">A current state of affairs - (Raise hands if you had one of these issues!)</h2>
+<div>
 <ul class="incremental">
 <li>I build a project but it doesn’t compile, whilst it did build on a collegues machine</li>
-<li>I modified some file like <code>/etc/nginx/nginx.conf</code> and now <code>apt upgrade</code> aborts, because it tries to override an existing file.</li>
+<li>I modified some file like <code>/usr/lib/nginx/nginx.conf</code> and now <code>apt upgrade</code> aborts, because it tries to override an existing file.</li>
+<li>I manually installed <code>node</code> in <code>/usr/bin/node</code>, now <code>apt</code> installs it as a dependency, and apt fails because it tries to override existing file</li>
 <li>Computer runs out of battery during <code>apt upgrade</code>, and now my whole system is F*$#kd</li>
-<li>My package manager has language version X, but I need language version Y</li>
+<li>My package manager has version X, but I need version Y</li>
+<li><strong>Insert story from the audience here</strong></li>
 </ul>
 </div>
-<div id="build-problems-1" class="slide section level1">
-<h1>Build problems</h1>
-<h2 id="what-is-the-root-cause-of-all-these-issues">What is the root cause of all these issues?</h2>
-<p><img src="current-flow.png" width="80%"></p>
+</div>
+<div id="challenge" class="slide section level1">
+<h1>Challenge</h1>
+<ul>
+<li>Take a random commit from 5 years ago at your company</li>
+<li>Can you get the commit to build from scratch?</li>
+</ul>
+</div>
+<div id="what-is-the-root-cause-of-all-these-issues" class="slide section level1">
+<h1>What is the root cause of all these issues?</h1>
+</div>
+<div id="what-is-the-root-cause-of-all-these-issues-1" class="slide section level1">
+<h1>What is the root cause of all these issues?</h1>
+<h2 id="mutability">Mutability</h2>
+<center>
+<img src="current-flow.png" width="50%">
+</center>
+<ul>
+<li><code>/usr</code> is a mutable directory</li>
+<li><code>/usr</code> is an implicit build input to all your projects
+</div></li>
+</ul>
 </div>
 <div id="what-do-we-want" class="slide section level1">
 <h1>What do we want?</h1>
-<ul class="incremental">
+<ul>
 <li>Reliable builds
-<ul class="incremental">
-<li>If it builds on my machine, it should build on any machine</li>
+<ul>
+<li>If it builds on my machine, it should build on any machine, always</li>
+<li>If I build it today, I should be able to build it in 10 years</li>
 </ul></li>
 <li>Isolation
-<ul class="incremental">
+<ul>
 <li>Multiple versions of the same software should be able to run next to each other</li>
 </ul></li>
 <li>Atomic updates
-<ul class="incremental">
+<ul>
 <li>You either install something completely, or you do not install it al all</li>
 </ul></li>
 </ul>
 </div>
-<div id="solution" class="slide section level1">
-<h1>Solution</h1>
+<div id="digression---git" class="slide section level1">
+<h1>Digression - Git</h1>
+<ul>
+<li>We decided that people editing the same files in the same Dropbox / fileshare is bad</li>
+<li>I delete an file by accident, and now collegue wants it back</li>
+<li>Version Control Systems were invented</li>
+</ul>
+</div>
+<div id="digression---git-1" class="slide section level1">
+<h1>Digression - Git</h1>
+<h2 id="in-git-do-we-all-edit-the-same-directory-no">In Git, do we all edit the same directory? No!</h2>
+<pre><font color="#D33682">❯</font> git log --graph --decorate --all
+* <font color="#B58900">commit 24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9 (</font><font color="#93A1A1"><b>HEAD</b></font><font color="#B58900">)</font>
+<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:51 2018 +0200
+<font color="#DC322F">|</font> 
+<font color="#DC322F">|</font>     Implement feature C
+<font color="#DC322F">|</font> 
+* <font color="#B58900">commit 1e63d01b43dcdab7636f6e49a8c116b42dd7af8f</font>
+<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:45 2018 +0200
+<font color="#DC322F">|</font> 
+<font color="#DC322F">|</font>     Implement feature A
+<font color="#DC322F">|</font> 
+* <font color="#B58900">commit b5deb132c92bb39e99477432b62adea62dcca43c</font>
+Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+Date:   Mon Jul 30 13:34:35 2018 +0200
+
+    Initial commit
+</pre>
+</div>
+<div id="digression---git-2" class="slide section level1">
+<h1>Digression - Git</h1>
+<ul>
+<li>Commits refer to content they contain</li>
+<li>Each commit uniquely identifies an <em>immutable</em> directory of files, stored in <code>.git/objects/&lt;commit-id&gt;</code></li>
+</ul>
+<pre><code>commit-id(Implement feature A) =
+  sha1(.
+        ├── sha1(a)
+        ├── sha1(b
+        │        └── sha1(b.html))
+        └── sha1(c
+                └── sha1(a.java))
+
+$ tree ./git/objects/24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9
+  ./git/objects/24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9
+  ├── a
+  ├── b
+  │   └── b.html
+  └── c
+      └── a.java
+</code></pre>
+<ul>
+<li>Current version of our Repo (<code>HEAD</code>) is just a symbollic link to such a commit</li>
+<li>Can move back and forth using <code>git checkout &lt;commit&gt;</code></li>
+</ul>
+<blockquote>
+<p>P.S. I know I am lying a bit, but this is <em>morally</em> true</p>
+</blockquote>
+</div>
+<div id="digression---git-3" class="slide section level1">
+<h1>Digression - Git</h1>
+<h2 id="we-simply-change-to-which-commit-head-points-to-rollback">We simply change to which commit HEAD points, to rollback</h2>
+<pre><font color="#D33682">❯</font> git log --graph --decorate --all
+* <font color="#B58900">commit 24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9 (</font><font color="#93A1A1"><b>HEAD</b></font><font color="#B58900">)</font>
+<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:51 2018 +0200
+<font color="#DC322F">|</font> 
+<font color="#DC322F">|</font>     Implement feature C
+<font color="#DC322F">|</font> 
+* <font color="#B58900">commit 1e63d01b43dcdab7636f6e49a8c116b42dd7af8f</font>
+<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:45 2018 +0200
+<font color="#DC322F">|</font> 
+<font color="#DC322F">|</font>     Implement feature A
+<font color="#DC322F">|</font> 
+* <font color="#B58900">commit b5deb132c92bb39e99477432b62adea62dcca43c</font>
+Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+Date:   Mon Jul 30 13:34:35 2018 +0200
+
+    Initial commit
+</pre>
+<pre><code>git checkout 24c1ad</code></pre>
+</div>
+<div id="digression---git-4" class="slide section level1">
+<h1>Digression - Git</h1>
+<h2 id="we-simply-change-to-which-commit-head-points-to-rollback-1">We simply change to which commit HEAD points, to rollback</h2>
+<pre><font color="#D33682">❯</font> git log --graph --decorate --all
+* <font color="#B58900">commit 24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9</font>
+<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:51 2018 +0200
+<font color="#DC322F">|</font> 
+<font color="#DC322F">|</font>     Implement feature C
+<font color="#DC322F">|</font> 
+* <font color="#B58900">commit 1e63d01b43dcdab7636f6e49a8c116b42dd7af8f (</font><font color="#93A1A1"><b>HEAD</b></font><font color="#B58900">)</font>
+<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:45 2018 +0200
+<font color="#DC322F">|</font> 
+<font color="#DC322F">|</font>     Implement feature A
+<font color="#DC322F">|</font> 
+* <font color="#B58900">commit b5deb132c92bb39e99477432b62adea62dcca43c</font>
+Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
+Date:   Mon Jul 30 13:34:35 2018 +0200
+
+    Initial commit
+</pre>
+<pre><code>git checkout 1e63d0</code></pre>
+</div>
+<div id="digression---git-5" class="slide section level1">
+<h1>Digression - Git</h1>
+<h2 id="what-problems-does-this-method-solve">What problems does this method solve?</h2>
+<ul>
+<li>A commit uniquely identifies the state of your source repository</li>
+<li>It will always do, because the repository is <em>immutable</em></li>
+<li>We can easily rollback</li>
+<li>We are atomic: 2 users don’t edit the same directory, they each edit their own little world, identified by a commit hash</li>
+<li>You either observe a commit in its totality</li>
+<li>Or <em>Not at all</em></li>
+<li>there is no “inbetween”</li>
+</ul>
+</div>
+<div id="what-do-we-want-1" class="slide section level1">
+<h1>What do we want?</h1>
+<ul>
+<li>Reliable builds</li>
+<li><del>Isolation</del></li>
+<li><del>Atomic updates</del></li>
+</ul>
+</div>
+<div id="idea" class="slide section level1">
+<h1>Idea</h1>
+<h2 id="lets-make-package-managers-work-like-git">Lets make package managers work like git!</h2>
+<blockquote>
+<p>Eelco Dolstra. The Purely Functional Software Deployment Model. PhD thesis, Faculty of Science, Utrecht, The Netherlands. January 2006. ISBN 90-393-4130-3.</p>
+</blockquote>
+<p><a href="https://nixos.org/~eelco/pubs/phd-thesis.pdf" class="uri">https://nixos.org/~eelco/pubs/phd-thesis.pdf</a></p>
+</div>
+<div id="idea-1" class="slide section level1">
+<h1>Idea</h1>
+<h2 id="lets-make-package-managers-work-like-git-1">Lets make package managers work like git!</h2>
+<pre><code>PREFIX= sha1(sha1(deps(package)) + sha1(src(package)) + sha1(options(package))
+
+$PREFIX/bin , $PREFIX/lib  $PREFIX/share
+instead of:
+/usr/bin, /usr/lib/, /usr/share
+</code></pre>
+<center>
+<img src="desired-flow.png" width="50%">
+</center>
+<ul>
+<li>Dependencies change? =&gt; Installed in different prefix</li>
+<li>Source code change? =&gt; Installed in different prefix</li>
+<li>Build options change? =&gt; Installed in different prefix</li>
+</ul>
+</div>
+<div id="nix" class="slide section level1">
+<h1>Nix</h1>
+<table>
+<tr>
+<td>
+<ul>
+<li>Package manager</li>
+<li>Declarative lanuage to describe package builds</li>
+<li>Isolated build environments</li>
+<li>Over 10000 packages and counting</li>
+<li>Mac OS X / Linux / BSD and Soon Windows Subsystem for Linux*</li>
+<li>Source-based package manager (Like Gentoo)</li>
+<li>But don’t worry; also has a build cache</li>
+</ul>
+</td>
+<td>
+<img src="nixos.svg">
+</td>
+<tr>
+</table>
+</div>
+<div id="demo-time-installing-a-package" class="slide section level1">
+<h1>DEMO TIME: Installing a package</h1>
+<ul>
+<li>To install a package, we build it from source, given a package description</li>
+<li><code>./nixpkgs.nix</code> is a file containing build instructions for all packages</li>
+</ul>
+<pre><code>nix-build ./nixpkgs.nix -A nginx
+tree /nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0
+sudo /nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0/bin/nginx
+curl http://localhost</code></pre>
+<ul>
+<li>Observation: It was instant? It didn’t build anything from source?</li>
+<li>Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program</li>
+</ul>
+</div>
+<div id="nix-env" class="slide section level1">
+<h1>nix-env</h1>
+<ul>
+<li>Used to install software in $PATH</li>
+</ul>
+<pre><code>nix-env -f ./nixpkgs.nix -i  -A nginx
+sudo nginx
+which nginx
+tree /home/arian/.nix-profile
+nix-env -f ./nixpkgs.nix -i -A hello
+tree /home/arian/.nix-profile
+nix-env --rollback
+hello
+nix-env --rollback
+nginx</code></pre>
+<ul>
+<li>Rollbacks possible?</li>
+<li>How?!</li>
+</ul>
+</div>
+<div id="nix-env-1" class="slide section level1">
+<h1>nix-env</h1>
+<h2 id="atomic-updates-and-rollbacks">Atomic updates and rollbacks</h2>
+<pre>
+export PATH=/nix/var/nix/profiles/per-user/arian/<font color="green">profile</font>
+
+/nix/var/nix/profiles/per-user/arian
+├── <font color="green">profile</font> -> <font color="red">profile-1-link</font>
+│   
+├── <font color="red">profile-1-link -> /nix/store/7m5fi-user-environment
+│   └── bin -> /nix/store/2gk7-nginx-2.0.1/bin</font>
+│   
+└── <font color="magenta">profile-2-link -> /nix/store/34hia-user-environment
+    └── bin
+        ├── hello -> /nix/store/i5h55-hello-1.14.0/bin/hello
+        └── nginx ->  /nix/store/2gk7-nginx-2.0.1/bin/nginx</font>
+</pre>
+<ul>
+<li>This is <em>exactly</em> the same as <code>HEAD</code> in git!</li>
+</ul>
+</div>
+<div id="nix-env-2" class="slide section level1">
+<h1>nix-env</h1>
+<h2 id="atomic-updates-and-rollbacks-1">Atomic updates and rollbacks</h2>
+<pre>
+export PATH=/nix/var/nix/profiles/per-user/arian/<font color="green">profile</font>
+
+/nix/var/nix/profiles/per-user/arian
+├── <font color="green">profile</font> -> <font color="magenta">profile-2-link</font>
+│   
+├── <font color="red">profile-1-link -> /nix/store/7m5fi-user-environment
+│   └── bin -> /nix/store/2gk7-nginx-2.0.1/bin</font>
+│   
+└── <font color="magenta">profile-2-link -> /nix/store/34hia-user-environment
+    └── bin
+        ├── hello -> /nix/store/i5h55-hello-1.14.0/bin/hello
+        └── nginx ->  /nix/store/2gk7-nginx-2.0.1/bin/nginx</font>
+</pre>
+<ul>
+<li>This is <em>exactly</em> the same as <code>HEAD</code> in git!</li>
+</ul>
+</div>
+<div id="important-takeaways" class="slide section level1">
+<h1>Important takeaways</h1>
+<ul>
+<li>Each package is installed in its own unique path (think git commit hash)</li>
+<li>Software is installed into profiles, which are symlinks to packages (think <code>HEAD</code>)</li>
+<li>You can rollback to previous profiles, by changing a symlink (think <code>git checkout</code>)</li>
+<li>This allows for atomic updates, because symlink changes are atomic</li>
+<li>As an end user, not very different from <code>homebrew</code> or <code>apt</code>, except for rollbacks</li>
+</ul>
+</div>
+<div id="how-does-all-this-black-magic-work" class="slide section level1">
+<h1>How does all this Black Magic work?</h1>
+<center>
+<img src="dog.jpg" width="50%">
+</center>
+</div>
+<div id="the-nix-language" class="slide section level1">
+<h1>The Nix Language</h1>
+<ul>
+<li>Language of Nixfiles, which describes how to build packages</li>
+<li>Think <code>Dockerfile</code> or <code>debinfo</code> file</li>
+<li>Actually a proper programming language</li>
+<li>JSON-like with templating, functions and variables</li>
+<li>Side-effects only allowed <em>but</em> only if we know the <em>output</em> beforehand</li>
+</ul>
+</div>
+<div id="the-nix-language-in-1-minute" class="slide section level1">
+<h1>The Nix Language in 1 minute</h1>
+<div class="sourceCode" id="cb7"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="st">&quot;hello&quot;</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="ex">1</span> + 3</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="ex">./a/path</span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="bu">[</span> <span class="st">&quot;i&quot;</span> 3 5<span class="bu"> ]</span></a></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw">{</span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">  <span class="ex">a</span> = 5<span class="kw">;</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="ex">b</span> = <span class="st">&quot;yo&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="kw">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ex">a</span> = 3</a>
+<a class="sourceLine" id="cb9-2" data-line-number="2"><span class="ex">b</span> = 4</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3"><span class="ex">add</span> = {x, y}:  <span class="ex">x</span> + y // <span class="dt">{x,y}</span> =<span class="op">&gt;</span> x + y in javascript</a>
+<a class="sourceLine" id="cb9-4" data-line-number="4"><span class="ex">add</span> { x = a <span class="kw">;</span> <span class="ex">y</span> = b}</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5"><span class="ex">people</span> = <span class="st">&quot;Domcode&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb9-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb9-7" data-line-number="7"><span class="st">&quot;Hello </span><span class="va">${people}</span><span class="st">&quot;</span></a>
+<a class="sourceLine" id="cb9-8" data-line-number="8"></a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="ex">import</span> ./domcode.nix</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="ex">derivation</span> { /* package build instructions */ }</a></code></pre></div>
+</div>
+<div id="the-derivation-function" class="slide section level1">
+<h1>The derivation function</h1>
+<ul>
+<li>derivation takes a build description</li>
+<li>Builds the project</li>
+<li>and returns where in /nix/store the project will installed</li>
+</ul>
+<pre>
+lol =  derivation { name = "lol";  builder = "lol"; system = builtins.currentSystem; }
+"${lol}"
+<font color="#B58900">&quot;/nix/store/7kv2zhwjiyzlnfn0lv1fcyd0w8xzcd8r-lol&quot;</font>
+</pre>
+<ul>
+<li>Nix is lazy. no other package needed the “lol” package, so it wasn’t built</li>
+<li>We can force it to build
+<pre>
+:b lol  # basically the same as doing  nix-build in the commandline
+</pre></li>
+</ul>
+</div>
+<div id="the-derivation-function-1" class="slide section level1">
+<h1>The derivation function</h1>
+<ul>
+<li>How does the derivation function decide where to install?</li>
+<li><strong>Hash of all its inputs, like git a commit!</strong></li>
+</ul>
+<pre><code>location =  /nix/store/sha256({ name = sha256(&quot;lol&quot;); builder = sha256(&quot;lol&quot;)}) + name;
+         =  /nix/store/7kv2zhwjiyzlnfn0lv1fcyd0w8xzcd8r-lol</code></pre>
+</div>
+<div id="an-actual-derivation" class="slide section level1">
+<h1>An actual derivation</h1>
+<table>
+<thead>
+<th>
+default.nix
+</th>
+<th>
+builder.sh
+</th>
+</thead>
+<tr>
+<td>
+<div class="sourceCode" id="cb12"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ex">derivation</span> {</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">  <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb12-4" data-line-number="4">  <span class="ex">/*</span> how to build */</a>
+<a class="sourceLine" id="cb12-5" data-line-number="5">  <span class="ex">builder</span> = <span class="st">&quot;</span><span class="va">${import</span><span class="er"> .</span><span class="va">/</span>bash.nix<span class="va">}</span><span class="st">/bin/bash&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6">  <span class="ex">args</span> = [ <span class="st">&quot;${./builder.sh}&quot;</span> ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8">  <span class="ex">/*</span> dependencies passed as env vars */</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9">  <span class="ex">src</span> = <span class="st">&quot;${./LoginService.java}&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-10" data-line-number="10">  <span class="ex">coreutils</span> = <span class="st">&quot;</span><span class="va">${import</span><span class="er"> .</span><span class="va">/</span>coreutils.nix<span class="va">}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-11" data-line-number="11">  <span class="fu">bash</span> = <span class="st">&quot;</span><span class="va">${import</span><span class="er"> .</span><span class="va">/</span>bash.nix<span class="va">}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-12" data-line-number="12">  <span class="ex">openjdk</span> = <span class="st">&quot;</span><span class="va">${import</span><span class="er"> .</span><span class="va">/</span>openjdk.nix<span class="va">}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-13" data-line-number="13">  <span class="ex">jre</span> = <span class="st">&quot;</span><span class="va">${import</span><span class="er"> .</span><span class="va">/</span>jre.nix<span class="va">}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-14" data-line-number="14">  <span class="ex">jzmq</span> = <span class="st">&quot;</span><span class="va">${import</span><span class="er"> .</span><span class="va">/</span>jzmq.nix<span class="va">}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb12-16" data-line-number="16">  <span class="ex">system</span> = builtins.currentSystem<span class="kw">;</span></a>
+<a class="sourceLine" id="cb12-17" data-line-number="17">}</a></code></pre></div>
+</td>
+<td>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="bu">export</span> <span class="va">PATH=$coreutils</span>/bin:<span class="va">$openjdk</span>/bin</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2"><span class="fu">cp</span> <span class="va">$src</span> LoginService.java</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3"><span class="ex">javac</span> -cp <span class="va">$jzmq</span>/share/java/zmq.jar LoginService.java</a>
+<a class="sourceLine" id="cb13-4" data-line-number="4"><span class="ex">jar</span> cfe LoginService.jar LoginService LoginService.class</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5"><span class="fu">mkdir</span> <span class="va">$out</span>/bin</a>
+<a class="sourceLine" id="cb13-6" data-line-number="6"><span class="fu">mkdir</span> <span class="va">$out</span>/lib</a>
+<a class="sourceLine" id="cb13-7" data-line-number="7"><span class="fu">cp</span> LoginService.jar <span class="va">$out</span>/lib</a>
+<a class="sourceLine" id="cb13-8" data-line-number="8"><span class="fu">cat</span> <span class="op">&lt;&lt;EOF</span> <span class="op">&gt;&gt;</span> <span class="va">$out</span><span class="ex">/bin/login-service</span></a>
+<a class="sourceLine" id="cb13-9" data-line-number="9">#!<span class="va">$bash</span>/bin/bash</a>
+<a class="sourceLine" id="cb13-10" data-line-number="10"><span class="va">$jre</span>/bin/java -Djava.library.path=&quot;<span class="va">$jzmq</span>/lib&quot; \</a>
+<a class="sourceLine" id="cb13-11" data-line-number="11">  -cp &quot;<span class="va">$jzmq</span>/share/java/zmq.jar:<span class="va">$out</span>/lib/LoginService.jar&quot; \</a>
+<a class="sourceLine" id="cb13-12" data-line-number="12">  LoginService</a>
+<a class="sourceLine" id="cb13-13" data-line-number="13">EOF</a>
+<a class="sourceLine" id="cb13-14" data-line-number="14">chmod +x <span class="va">$out</span>/bin/login-service</a></code></pre></div>
+</td>
+</tr>
+</table>
+</div>
+<div id="an-actual-derivation-1" class="slide section level1">
+<h1>An actual derivation</h1>
+<table>
+<thead>
+<th>
+default.nix
+</th>
+<th>
+builder.sh
+</th>
+</thead>
+<tr>
+<td>
+<div class="sourceCode" id="cb14"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="ex">derivation</span> {</a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">  <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb14-4" data-line-number="4">  <span class="ex">/*</span> how to build */</a>
+<a class="sourceLine" id="cb14-5" data-line-number="5">  <span class="ex">builder</span> = <span class="st">&quot;/nix/store/81293812dhadshu-bash/bin/bash&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-6" data-line-number="6">  <span class="ex">args</span> = [ <span class="st">&quot;/nix/store/adjk39213813-builder.sh&quot;</span> ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb14-8" data-line-number="8">  <span class="ex">/*</span> dependencies passed as env vars */</a>
+<a class="sourceLine" id="cb14-9" data-line-number="9">  <span class="ex">src</span> = <span class="st">&quot;/nix/store/ads12hj3981-LoginService.java&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-10" data-line-number="10">  <span class="ex">coreutils</span> = <span class="st">&quot;/nix/store/sij1873123-coreutils&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-11" data-line-number="11">  <span class="fu">bash</span> = <span class="st">&quot;/nix/store/81293812dhadshu-bash&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-12" data-line-number="12">  <span class="ex">openjdk</span> = <span class="st">&quot;/nix/store/13uwduoiqeuq-openjdk&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-13" data-line-number="13">  <span class="ex">jre</span> = <span class="st">&quot;/nix/store/21uiuadiuqe-jre&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-14" data-line-number="14">  <span class="ex">jzmq</span> = <span class="st">&quot;/nix/store/ajsdqueiq-jzmq&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-15" data-line-number="15"></a>
+<a class="sourceLine" id="cb14-16" data-line-number="16">  <span class="ex">system</span> = builtins.currentSystem<span class="kw">;</span></a>
+<a class="sourceLine" id="cb14-17" data-line-number="17">}</a></code></pre></div>
+</td>
+<td>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="bu">export</span> <span class="va">PATH=$coreutils</span>/bin:<span class="va">$openjdk</span>/bin</a>
+<a class="sourceLine" id="cb15-2" data-line-number="2"><span class="fu">cp</span> <span class="va">$src</span> LoginService.java</a>
+<a class="sourceLine" id="cb15-3" data-line-number="3"><span class="ex">javac</span> -cp <span class="va">$jzmq</span>/share/java/zmq.jar LoginService.java</a>
+<a class="sourceLine" id="cb15-4" data-line-number="4"><span class="ex">jar</span> cfe LoginService.jar LoginService LoginService.class</a>
+<a class="sourceLine" id="cb15-5" data-line-number="5"><span class="fu">mkdir</span> <span class="va">$out</span></a>
+<a class="sourceLine" id="cb15-6" data-line-number="6"><span class="fu">cp</span> LoginService.jar <span class="va">$out</span></a>
+<a class="sourceLine" id="cb15-7" data-line-number="7"><span class="fu">cat</span> <span class="op">&lt;&lt;EOF</span> <span class="op">&gt;&gt;</span> <span class="va">$out</span><span class="ex">/login-service</span></a>
+<a class="sourceLine" id="cb15-8" data-line-number="8">#!<span class="va">$bash</span>/bin/bash</a>
+<a class="sourceLine" id="cb15-9" data-line-number="9"><span class="va">$jre</span>/bin/java -Djava.library.path=&quot;<span class="va">$jzmq</span>/lib&quot; \</a>
+<a class="sourceLine" id="cb15-10" data-line-number="10">  -cp &quot;<span class="va">$jzmq</span>/share/java/zmq.jar:<span class="va">$out</span>/LoginService.jar&quot; \</a>
+<a class="sourceLine" id="cb15-11" data-line-number="11">  LoginService</a>
+<a class="sourceLine" id="cb15-12" data-line-number="12">EOF</a>
+<a class="sourceLine" id="cb15-13" data-line-number="13">chmod +x <span class="va">$out</span>/login-service</a></code></pre></div>
+</td>
+</tr>
+</table>
+</div>
+<div id="graphical-representation-of-our-derivation" class="slide section level1">
+<h1>Graphical representation of our Derivation</h1>
+<center>
+<img width="90%" src="before-evaluation.svg">
+</center>
+</div>
+<div id="evaluated-derivation" class="slide section level1">
+<h1>Evaluated derivation</h1>
+<center>
+<img width="90%" src="lolandthen.svg">
+</center>
+</div>
+<div id="evaluated-derivation-1" class="slide section level1">
+<h1>Evaluated derivation</h1>
+<center>
+<img width="90%" src="after-evaluation.svg">
+</center>
+</div>
+<div id="if-i-update-the-source-code" class="slide section level1">
+<h1>If I update the source code</h1>
+<center>
+<img width="90%" src="update-sourcecode.svg">
+</center>
+</div>
+<div id="if-i-update-the-source-code-1" class="slide section level1">
+<h1>If I update the source code</h1>
+<center>
+<img width="90%" src="after-update-sourcecode.svg">
+</center>
+</div>
+<div id="section" class="slide section level1">
+<h1>…</h1>
+<center>
+<img width="90%" src="inbetween.svg">
+</center>
+</div>
+<div id="if-i-update-one-of-the-dependencies" class="slide section level1">
+<h1>If I update one of the dependencies …</h1>
+<center>
+<img width="90%" src="update-openjdk.svg">
+</center>
+</div>
+<div id="if-i-update-one-of-the-dependencies-1" class="slide section level1">
+<h1>If I update one of the dependencies …</h1>
+<center>
+<img width="90%" src="after-update-openjdk.svg">
+</center>
+</div>
+<div id="so-why-a-programming-language" class="slide section level1">
+<h1>So why a programming language?</h1>
+<ul>
+<li>To build reusable constructs</li>
+<li>Comes with a large standard library of common build patterns</li>
+<li><code>./nixpkgs.nix</code> is a list of 10000+ packages the community already created <a href="https://github.com/nixos/nixpkgs" class="uri">https://github.com/nixos/nixpkgs</a></li>
+<li><code>stdenv</code> is a derivation that will automatically detect your project’s build tool (<code>make</code>, <code>cmake</code>, <code>autotools</code>), and will generate that pesky <code>builder.sh</code> for us</li>
+</ul>
+<div class="sourceCode" id="cb16"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="bu">let</span> pkgs = import ./nixpkgs.nix</a>
+<a class="sourceLine" id="cb16-2" data-line-number="2"><span class="kw">in</span></a>
+<a class="sourceLine" id="cb16-3" data-line-number="3"><span class="ex">pkgs.stdenv.mkDerivation</span> rec {</a>
+<a class="sourceLine" id="cb16-4" data-line-number="4">  <span class="ex">name</span> = <span class="st">&quot;jzmq-</span><span class="va">${version}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb16-5" data-line-number="5">  <span class="ex">version</span> = <span class="st">&quot;3.1.0&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb16-6" data-line-number="6">  <span class="ex">src</span> = fetchFromGitHub {</a>
+<a class="sourceLine" id="cb16-7" data-line-number="7">    <span class="ex">owner</span> = <span class="st">&quot;zeromq&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb16-8" data-line-number="8">    <span class="ex">repo</span> = <span class="st">&quot;jzmq&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb16-9" data-line-number="9">    <span class="fu">rev</span> = <span class="st">&quot;v</span><span class="va">${version}</span><span class="st">&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb16-10" data-line-number="10">    <span class="ex">sha256</span> = <span class="st">&quot;1wlzs604mgmqmrgpk4pljx2nrlxzdfi3r8k59qlm90fx8qkqkc63&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb16-11" data-line-number="11">  };</a>
+<a class="sourceLine" id="cb16-12" data-line-number="12">  <span class="ex">buildInputs</span> = [ pkgs.zeromq3 pkgs.jdk ]<span class="kw">;</span></a></code></pre></div>
+</div>
+<div id="so-why-a-programming-language-1" class="slide section level1">
+<h1>So why a programming language?</h1>
+<ul>
+<li><p>Currate package sets</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb17-1" data-line-number="1"><span class="bu">let</span> pkgs = import ./nixpkgs<span class="kw">;</span></a>
+<a class="sourceLine" id="cb17-2" data-line-number="2"><span class="kw">in</span> <span class="ex">filter</span> (pkg: pkgs.meta.license !== pkgs.lib.licenses.AGPL3) </a>
+<a class="sourceLine" id="cb17-3" data-line-number="3">          <span class="ex">pkgs</span></a></code></pre></div></li>
+<li><p>Override existing packages and tweak them</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb18-1" data-line-number="1"><span class="ex">myNginx</span> = nginx.override { openssl = libressl<span class="kw">;</span> }</a></code></pre></div>
+<hr /></li>
+</ul>
+</div>
+<div id="how-is-a-derivation-built" class="slide section level1">
+<h1>How is a derivation built</h1>
+<ul>
+<li>Source code is downloaded</li>
+<li>Code is <strong>checked against hash, otherwise abort</strong></li>
+<li>A chroot (container) is setup, containing <em>just</em> the build dependencies and source</li>
+<li>No network access</li>
+<li>All environment variables are <em>Cleared</em></li>
+<li>No access to <code>$HOME</code>. No access to anything on disk..</li>
+<li>Time is set to 1970</li>
+<li><strong>The package build can only depend directly on the dependencies specified, and NOTHING else</strong></li>
+<li>The <code>builder</code> argument is executed, and its output copied to the Nix store</li>
+</ul>
+</div>
+<div id="how-is-a-derivation-built-1" class="slide section level1">
+<h1>How is a derivation built</h1>
+<ul>
+<li>Now, if a collegue forgets to write down what libraries <em>exactly</em> you need to install</li>
+<li>… Or if uses library that is available by default on Ubuntu but not On Redhat</li>
+<li>… The build is guarenteed to fail</li>
+<li>We explicitly state the hash of sources we download from the internet</li>
+<li>If the internet changes, then the build fails. No implicit changes!</li>
+<li><strong>Reliable builds</strong></li>
+</ul>
+</div>
+<div id="reliable-builds" class="slide section level1">
+<h1>Reliable builds</h1>
+<ul>
+<li>I am confident, that if I check out the Nix file of <code>nginx</code> from a year ago, it will build</li>
+<li>It will build all old versions of dependencies from source, and then build <code>nginx</code> from source</li>
+<li>Takes a long time. But <strong>it <em>will</em> work</strong></li>
+</ul>
+<pre><code>cd nixpkgs-channels
+git log
+cat nginx.nix
+nix-build  nginx.nix</code></pre>
+</div>
+<div id="what-do-we-want-2" class="slide section level1">
+<h1>What do we want?</h1>
+<ul>
+<li><del>Reliable builds</del></li>
+<li><del>Isolation</del></li>
+<li><del>Atomic updates</del></li>
+<li>Not build everything from source? What the hell, Arian?</li>
+</ul>
+</div>
+<div id="build-cache" class="slide section level1">
+<h1>Build Cache</h1>
+<ul>
+<li>Remember, our build instructions uniquely determine where we install the package</li>
+</ul>
+<pre>nix-repl&gt; &quot;${nginx}&quot;
+<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font></pre>
+<ul>
+<li><strong>We know <em>beforehand</em> where our build is going to be put!</strong></li>
+<li>Simply <em>ask</em> if someone else already built it, and download it from there!</li>
+</ul>
+<div class="sourceCode" id="cb20"><pre class="sourceCode perl"><code class="sourceCode perl"><a class="sourceLine" id="cb20-1" data-line-number="1"><span class="kw">if</span> file_exists(<span class="kw">&quot;</span><span class="dt">${pkg}</span><span class="kw">&quot;</span>) {</a>
+<a class="sourceLine" id="cb20-2" data-line-number="2">  <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb20-3" data-line-number="3">} <span class="kw">else</span> <span class="kw">if</span> download(<span class="kw">&quot;</span><span class="st">https://cache.nixos.org/</span><span class="dt">${pkg}</span><span class="kw">&quot;</span>) {</a>
+<a class="sourceLine" id="cb20-4" data-line-number="4">  <span class="kw">return</span>;</a>
+<a class="sourceLine" id="cb20-5" data-line-number="5">} <span class="kw">else</span> {</a>
+<a class="sourceLine" id="cb20-6" data-line-number="6">  build(pkg);</a>
+<a class="sourceLine" id="cb20-7" data-line-number="7">}</a></code></pre></div>
+</div>
+<div id="build-cache-1" class="slide section level1">
+<h1>Build Cache</h1>
+<ul>
+<li>Remember, our build instructions uniquely determine where we install the package</li>
+</ul>
+<pre>nix-repl&gt; &quot;${nginx}&quot;
+<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font></pre>
+<ul>
+<li><strong>We know <em>beforehand</em> where our build is going to be put!</strong></li>
+<li>Simply <em>ask</em> if someone else already built it, and download it from there! <code>
+<pre>
+if file_exists(<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font>) {
+return;
+} else if download(<font color="#B58900">&quot;https://cache.nixos.org/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font>) {
+return;
+} else {
+build(pkg);
+}
+</pre>
+</code></li>
+</ul>
+</div>
+<div id="build-cache-2" class="slide section level1">
+<h1>Build Cache</h1>
+<ul>
+<li>Can also be used privately, for company-internal packages</li>
+</ul>
+<div>
+<ul class="incremental">
+<li><code>nix build --store https://cache.nixos.org</code> (Default)</li>
+<li><code>nix build --store s3://my-company-bucket</code></li>
+<li><code>nix build --store ssh://collegue-machine</code></li>
+<li><code>nix build --store file:///nfs/company-fileshare/</code></li>
+<li>BuildCache As A Service : <a href="https://cachix.org">https://cachix.org/</a></li>
+</ul>
+</div>
+<ul>
+<li>If a collegue already built some project</li>
+<li>… and you checkout the same git commit</li>
+<li>Then you don’t have to rebuild everything! You just download it from the cache!</li>
+</ul>
+</div>
+<div id="continious-integration-script" class="slide section level1">
+<h1>Continious integration script</h1>
+<ul>
+<li>Typical Nix CI script</li>
+</ul>
+<div class="sourceCode" id="cb21"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb21-1" data-line-number="1"><span class="co"># .travis.yml</span></a>
+<a class="sourceLine" id="cb21-2" data-line-number="2"><span class="fu">language:</span><span class="at"> nix</span></a>
+<a class="sourceLine" id="cb21-3" data-line-number="3"><span class="fu">script:</span></a>
+<a class="sourceLine" id="cb21-4" data-line-number="4">  <span class="kw">-</span> <span class="fu">nix build . --store s3:</span><span class="at">//company-bucket</span></a>
+<a class="sourceLine" id="cb21-5" data-line-number="5"><span class="fu">after_success:</span></a>
+<a class="sourceLine" id="cb21-6" data-line-number="6">  <span class="kw">-</span> <span class="fu">nix copy . --to s3:</span><span class="at">//company-bucket</span></a></code></pre></div>
+</div>
+<div id="how-about-docker" class="slide section level1">
+<h1>How about docker?</h1>
 <center>
 <img src="Docker-logo-011.png" width="50%">
 </center>
@@ -150,171 +806,80 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Just put it in a damn container - <b>Lucas</b></p>
 </blockquote>
 </div>
-<div id="solution-docker" class="slide section level1">
-<h1>Solution? Docker</h1>
-<ul class="incremental">
-<li>Docker is a distribution format and execution method</li>
-<li>It does not solve the problem of reliable builds</li>
-<li></li>
-</ul>
-</div>
 <div id="docker" class="slide section level1">
-<h1>Docker</h1>
-<ul class="incremental">
-<li>Solves the ‘works on my machine’ problem by shipping container artifacts from dev/CI to production</li>
-<li>Does <em>not</em> solve the ‘compiles on my machine’ problem.<br />
-</li>
-<li>Two people with the same Dockerfile, are not guarenteed to both succesfully build the project</li>
-</ul>
-</div>
-<div id="solution-functional-flow" class="slide section level1">
-<h1>Solution: Functional flow</h1>
-<p><img src="desired-flow.png" width="80%"></p>
-</div>
-<div id="the-nix-package-manager" class="slide section level1">
-<h1>The Nix Package Manager</h1>
-<ul class="incremental">
-<li>Purely functional</li>
-<li>Atomic</li>
-<li>Reproducible</li>
-<li>Packages described in the declarative “Nix Programming Language”</li>
-</ul>
-</div>
-<div id="the-nix-package-manager-1" class="slide section level1">
-<h1>The Nix Package Manager</h1>
-</div>
-<div id="using-nix-for-day-to-day-use" class="slide section level1">
-<h1>Using Nix for day to day use</h1>
-<ul class="incremental">
-<li>You can use Nix as a replacement for <code>apt</code> or <code>homebrew</code></li>
-</ul>
-</div>
-<div class="slide section level1">
-
-</div>
-<div id="the-nix-programming-language" class="slide section level1">
-<h1>The nix programming language</h1>
-<ul class="incremental">
-<li>Think of it as JSON with templates and functions</li>
-<li>Used to describe package derivations</li>
-<li>Show around a little bit in the repl</li>
-</ul>
-</div>
-<div id="our-first-package" class="slide section level1">
-<h1>Our first package</h1>
-<h2 id="java-login-frontend-of-our-bank">Java Login frontend of our bank</h2>
-<ul class="incremental">
-<li>Use imagination such that this is a Spring enterprise web servlet in the cloud</li>
-</ul>
-<div class="sourceCode" id="cb1"><pre class="sourceCode java"><code class="sourceCode java"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">import</span><span class="im"> org.zeromq.ZMQ;</span></a>
-<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">import</span><span class="im"> java.nio.charset.StandardCharsets;</span></a>
-<a class="sourceLine" id="cb1-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="kw">public</span> <span class="kw">class</span> LoginService {</a>
-<a class="sourceLine" id="cb1-5" data-line-number="5">  <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">main</span>(<span class="bu">String</span>[]args) {</a>
-<a class="sourceLine" id="cb1-6" data-line-number="6">    ZMQ.<span class="fu">Context</span> ctx = ZMQ.<span class="fu">context</span>(<span class="dv">1</span>);</a>
-<a class="sourceLine" id="cb1-7" data-line-number="7">    ZMQ.<span class="fu">Socket</span> sock = ctx.<span class="fu">socket</span>(ZMQ.<span class="fu">REQ</span>);</a>
-<a class="sourceLine" id="cb1-8" data-line-number="8">    sock.<span class="fu">connect</span>(<span class="st">&quot;tcp://127.0.0.1:1234&quot;</span>);</a>
-<a class="sourceLine" id="cb1-9" data-line-number="9">    <span class="dt">byte</span>[] msg = <span class="st">&quot;arian       @r1aN&quot;</span>.<span class="fu">getBytes</span>(StandardCharsets.<span class="fu">UTF_8</span>);</a>
-<a class="sourceLine" id="cb1-10" data-line-number="10">    sock.<span class="fu">send</span>(msg, <span class="dv">0</span>, <span class="dv">0</span>);</a>
-<a class="sourceLine" id="cb1-11" data-line-number="11">    <span class="dt">byte</span>[] resp = sock.<span class="fu">recv</span>(<span class="dv">0</span>);</a>
-<a class="sourceLine" id="cb1-12" data-line-number="12">    <span class="bu">String</span> s = <span class="kw">new</span> <span class="bu">String</span>(resp, StandardCharsets.<span class="fu">UTF_8</span>);</a>
-<a class="sourceLine" id="cb1-13" data-line-number="13">    <span class="bu">System</span>.<span class="fu">out</span>.<span class="fu">println</span>(s);</a>
-<a class="sourceLine" id="cb1-14" data-line-number="14">  }</a>
-<a class="sourceLine" id="cb1-15" data-line-number="15">}</a>
-<a class="sourceLine" id="cb1-16" data-line-number="16"></a></code></pre></div>
-</div>
-<div id="our-first-package-1" class="slide section level1">
-<h1>Our first package</h1>
+<h1>Docker?</h1>
 <table>
 <tr>
 <td>
-<div class="sourceCode" id="cb2"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="co"># default.nix</span></a>
-<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="bu">let</span></a>
-<a class="sourceLine" id="cb2-3" data-line-number="3">  <span class="ex">pkgs</span> = import ../nixpkgs.nix<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="kw">in</span></a>
-<a class="sourceLine" id="cb2-5" data-line-number="5">  <span class="ex">derivation</span> {</a>
-<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-7" data-line-number="7">    <span class="ex">builder</span> = <span class="st">&quot;</span><span class="va">${pkgs</span><span class="er">.bash</span><span class="va">}</span><span class="st">/bin/bash&quot;</span><span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-8" data-line-number="8">    <span class="ex">args</span> = [ ./builder.sh ]<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-9" data-line-number="9">    <span class="ex">src</span> = ./LoginService.java<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-10" data-line-number="10">    <span class="ex">coreutils</span> = pkgs.coreutils<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-11" data-line-number="11">    <span class="ex">openjdk</span> = pkgs.openjdk<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-12" data-line-number="12">    <span class="ex">jre</span> = pkgs.jre<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-13" data-line-number="13">    <span class="ex">jzmq</span> = pkgs.jzmq<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-14" data-line-number="14">    <span class="ex">system</span> = builtins.currentSystem<span class="kw">;</span></a>
-<a class="sourceLine" id="cb2-15" data-line-number="15">  }</a></code></pre></div>
+<pre class="docker"><code>FROM ubuntu:xenial
+RUN apt update -y &amp;&amp; \
+    apt upgrade -y &amp;&amp; \
+    apt install python3 \
+                python3-pip \ 
+                mysql-client \
+                liblapack-dev &amp;&amp; \
+    pip3 install scipy \
+                 Flask \
+                 sqlalchemy
+COPY . /app
+WORKDIR /app
+ENTRYPOINT [&quot;python3&quot;]
+EXPOSE 8080
+CMD [&quot;app.py&quot;]
+</code></pre>
 </td>
 <td>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="co"># builder.sh</span></a>
-<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="bu">export</span> <span class="va">PATH=$coreutils</span>/bin:<span class="va">$openjdk</span>/bin</a>
-<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="fu">cp</span> <span class="va">$src</span> LoginService.java</a>
-<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="ex">javac</span> -cp <span class="va">$jzmq</span>/share/java/zmq.jar LoginService.java</a>
-<a class="sourceLine" id="cb3-5" data-line-number="5"><span class="ex">jar</span> cfe LoginService.jar LoginService LoginService.class</a>
-<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="fu">mkdir</span> <span class="va">$out</span></a>
-<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="fu">cp</span> LoginService.jar <span class="va">$out</span></a>
-<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="fu">cat</span> <span class="op">&lt;&lt;EOF</span> <span class="op">&gt;&gt;</span> <span class="va">$out</span><span class="ex">/login-service</span></a>
-<a class="sourceLine" id="cb3-9" data-line-number="9">#!/{pkgs.bash}</a>
-<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="va">$jre</span>/bin/java -Djava.library.path=&quot;<span class="va">$jzmq</span>/lib&quot; \</a>
-<a class="sourceLine" id="cb3-11" data-line-number="11">  -cp &quot;<span class="va">$jzmq</span>/share/java/zmq.jar:<span class="va">$out</span>/LoginService.jar&quot; \</a>
-<a class="sourceLine" id="cb3-12" data-line-number="12">  LoginService</a>
-<a class="sourceLine" id="cb3-13" data-line-number="13">EOF</a>
-<a class="sourceLine" id="cb3-14" data-line-number="14">chmod +x <span class="va">$out</span>/login-service</a></code></pre></div>
+<ul>
+<li>Atomic</li>
+<li>Isolated</li>
+<li>But reliable?
+<ul>
+<li>Does xenial still exist?</li>
+<li>What version packages do I get if I run “upgrade?”</li>
+<li>What libs are installed by default on xenial?</li>
+</ul></li>
+</ul>
+<h2 id="challenge-1">Challenge</h2>
+<ul>
+<li>Can you take a random commit + Dockerfile from 5 years ago at your company and build your project?</li>
+</ul>
 </td>
 </tr>
 </table>
 </div>
-<div id="what-is-a-derivation" class="slide section level1">
-<h1>What is a derivation?</h1>
+<div id="solution-docker" class="slide section level1">
+<h1>Solution? Docker</h1>
+<ul>
+<li>Docker is an ubiquitos distribution format.</li>
+<li>Solves the “runs on my machine” problem</li>
+<li>Does <em>not</em> solve the “builds on my machine” problem</li>
+</ul>
+</div>
+<div id="best-of-both-worlds" class="slide section level1">
+<h1>Best of both worlds</h1>
 <table>
 <tr>
 <td>
-<div class="sourceCode" id="cb4"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co"># default.nix</span></a>
-<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="bu">let</span></a>
-<a class="sourceLine" id="cb4-3" data-line-number="3">  <span class="ex">pkgs</span> = import ../nixpkgs.nix<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="kw">in</span></a>
-<a class="sourceLine" id="cb4-5" data-line-number="5">  <span class="ex">derivation</span> {</a>
-<a class="sourceLine" id="cb4-6" data-line-number="6">    <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-7" data-line-number="7">    <span class="ex">builder</span> = <span class="st">&quot;</span><span class="va">${pkgs</span><span class="er">.bash</span><span class="va">}</span><span class="st">/bin/bash&quot;</span><span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-8" data-line-number="8">    <span class="ex">args</span> = [ ./builder.sh ]<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-9" data-line-number="9">    <span class="ex">src</span> = ./LoginService.java<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-10" data-line-number="10">    <span class="ex">coreutils</span> = pkgs.coreutils<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-11" data-line-number="11">    <span class="ex">openjdk</span> = pkgs.openjdk<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-12" data-line-number="12">    <span class="ex">jre</span> = pkgs.jre<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-13" data-line-number="13">    <span class="ex">jzmq</span> = pkgs.jzmq<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-14" data-line-number="14">    <span class="ex">system</span> = builtins.currentSystem<span class="kw">;</span></a>
-<a class="sourceLine" id="cb4-15" data-line-number="15">  }</a></code></pre></div>
+<ul>
+<li>Nix has support for building docker containers</li>
+<li>Copies your package + all its dependencies in a docker image</li>
+<li><strong>Bare image</strong>, no <code>FROM blah</code></li>
+<li>Super small</li>
+<li>You can easily integrate Nix in existing docker-compose or Kubernetes projects!</li>
+</ul>
 </td>
 <td>
-<div class="sourceCode" id="cb5"><pre class="sourceCode json"><code class="sourceCode json"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="fu">{</span> </a>
-<a class="sourceLine" id="cb5-2" data-line-number="2">  <span class="dt">&quot;/nix/store/smr6-login-service.drv&quot;</span><span class="fu">:</span> <span class="fu">{</span></a>
-<a class="sourceLine" id="cb5-3" data-line-number="3">    <span class="dt">&quot;outputs&quot;</span><span class="fu">:</span> <span class="fu">{</span></a>
-<a class="sourceLine" id="cb5-4" data-line-number="4">      <span class="dt">&quot;out&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;/nix/store/mzj8-login-service&quot;</span> <span class="fu">}</span></a>
-<a class="sourceLine" id="cb5-5" data-line-number="5">    <span class="fu">},</span></a>
-<a class="sourceLine" id="cb5-6" data-line-number="6">    <span class="dt">&quot;inputSrcs&quot;</span><span class="fu">:</span> <span class="ot">[</span></a>
-<a class="sourceLine" id="cb5-7" data-line-number="7">      <span class="st">&quot;/nix/store/f3y1-LoginService.java&quot;</span><span class="ot">,</span></a>
-<a class="sourceLine" id="cb5-8" data-line-number="8">      <span class="st">&quot;/nix/store/r1ry-builder.sh&quot;</span></a>
-<a class="sourceLine" id="cb5-9" data-line-number="9">    <span class="ot">]</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-10" data-line-number="10">    <span class="dt">&quot;inputDrvs&quot;</span><span class="fu">:</span> <span class="ot">[</span> </a>
-<a class="sourceLine" id="cb5-11" data-line-number="11">      <span class="st">&quot;/nix/store/2zlf-bash-4.4-p23.drv&quot;</span><span class="ot">,</span></a>
-<a class="sourceLine" id="cb5-12" data-line-number="12">      <span class="st">&quot;/nix/store/9fwq-jzmq-3.1.0.drv&quot;</span><span class="ot">,</span></a>
-<a class="sourceLine" id="cb5-13" data-line-number="13">      <span class="st">&quot;/nix/store/q80i-openjdk-8u172b11.drv&quot;</span><span class="ot">,</span></a>
-<a class="sourceLine" id="cb5-14" data-line-number="14">      <span class="st">&quot;/nix/store/wx2j-coreutils-8.29.drv&quot;</span></a>
-<a class="sourceLine" id="cb5-15" data-line-number="15">    <span class="ot">]</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-16" data-line-number="16">    <span class="dt">&quot;builder&quot;</span><span class="fu">:</span> <span class="st">&quot;/nix/store/8zkg-bash-4.4-p23/bin/bash&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-17" data-line-number="17">    <span class="dt">&quot;args&quot;</span><span class="fu">:</span> <span class="ot">[</span>  <span class="st">&quot;/nix/store/r1ry-builder.sh&quot;</span> <span class="ot">]</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-18" data-line-number="18">    <span class="dt">&quot;env&quot;</span><span class="fu">:</span> <span class="fu">{</span></a>
-<a class="sourceLine" id="cb5-19" data-line-number="19">      <span class="dt">&quot;builder&quot;</span><span class="fu">:</span>   <span class="st">&quot;/nix/store/8zkg-bash-4.4-p23/bin/bash&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-20" data-line-number="20">      <span class="dt">&quot;coreutils&quot;</span><span class="fu">:</span> <span class="st">&quot;/nix/store/n7qp-coreutils-8.29&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-21" data-line-number="21">      <span class="dt">&quot;jre&quot;</span><span class="fu">:</span>       <span class="st">&quot;/nix/store/v5ld-openjdk-8u172b11-jre&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-22" data-line-number="22">      <span class="dt">&quot;openjdk&quot;</span><span class="fu">:</span>   <span class="st">&quot;/nix/store/8nll-openjdk-8u172b11&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-23" data-line-number="23">      <span class="dt">&quot;jzmq&quot;</span><span class="fu">:</span>      <span class="st">&quot;/nix/store/hill-jzmq-3.1.0&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-24" data-line-number="24">      <span class="dt">&quot;out&quot;</span><span class="fu">:</span>       <span class="st">&quot;/nix/store/mzj8-login-service&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-25" data-line-number="25">      <span class="dt">&quot;src&quot;</span><span class="fu">:</span>       <span class="st">&quot;/nix/store/f3y1-LoginService.java&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-26" data-line-number="26">      <span class="dt">&quot;name&quot;</span><span class="fu">:</span>      <span class="st">&quot;login-service&quot;</span><span class="fu">,</span></a>
-<a class="sourceLine" id="cb5-27" data-line-number="27">      <span class="dt">&quot;system&quot;</span><span class="fu">:</span> <span class="st">&quot;x86_64-linux&quot;</span></a>
-<a class="sourceLine" id="cb5-28" data-line-number="28">    <span class="fu">}</span> </a>
-<a class="sourceLine" id="cb5-29" data-line-number="29">  <span class="fu">}</span></a>
-<a class="sourceLine" id="cb5-30" data-line-number="30"><span class="fu">}</span></a></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb23-1" data-line-number="1"><span class="bu">let</span></a>
+<a class="sourceLine" id="cb23-2" data-line-number="2">  <span class="ex">pkgs</span> = import ../nixpkgs.nix<span class="kw">;</span></a>
+<a class="sourceLine" id="cb23-3" data-line-number="3">  <span class="ex">login-service</span> = import ./login-service.nix<span class="kw">;</span></a>
+<a class="sourceLine" id="cb23-4" data-line-number="4"><span class="kw">in</span></a>
+<a class="sourceLine" id="cb23-5" data-line-number="5">  <span class="ex">pkgs.dockerTools.buildImage</span> {</a>
+<a class="sourceLine" id="cb23-6" data-line-number="6">    <span class="ex">name</span> = <span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb23-7" data-line-number="7">    <span class="ex">config</span> = {</a>
+<a class="sourceLine" id="cb23-8" data-line-number="8">      <span class="ex">Cmd</span> = [ <span class="st">&quot;</span><span class="va">${login-</span>service<span class="va">}</span><span class="st">/bin/login-service&quot;</span> ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb23-9" data-line-number="9">      <span class="ex">Expose</span> = [ 8080 ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb23-10" data-line-number="10">    };</a>
+<a class="sourceLine" id="cb23-11" data-line-number="11">  }</a></code></pre></div>
 </td>
 </tr>
 </table>
@@ -322,7 +887,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="nixos---a-configuration-management-tool" class="slide section level1">
 <h1>NixOS - A configuration management tool</h1>
 <h2 id="problems-with-existing-tools-like-chef-ansible-puppet">Problems with existing tools like Chef / Ansible / Puppet</h2>
-<ul class="incremental">
+<ul>
 <li>Just like with package management, output state depends on current state</li>
 <li>Your playbooks might depend on implicit state</li>
 <li>Playbooks might diverge with what is actually on the system</li>
@@ -331,8 +896,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <div id="nixos---a-configuration-management-tool-1" class="slide section level1">
 <h1>NixOS - A configuration management tool</h1>
-<h2 id="anecdote">Anecdote</h2>
-<ul class="incremental">
+<h2 id="anecdote-1">Anecdote 1</h2>
+<ul>
 <li>Ansible modifies <code>/etc/nginx/nginx.conf</code></li>
 <li>Ansible enabled auto upgrades of packages</li>
 <li>Upgrade of apt overrides `/etc/nginx/nginx.conf</li>
@@ -342,20 +907,56 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <div id="nixos---a-configuration-management-tool-2" class="slide section level1">
 <h1>NixOS - A configuration management tool</h1>
-<p>Okay, we need to add code example here.</p>
+<h2 id="anecdote-2">Anecdote 2</h2>
+<ul>
+<li>If you remove a line in Ansible, nothing happens!</li>
+</ul>
+<div class="sourceCode" id="cb24"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="kw">-</span> <span class="fu">name:</span><span class="at"> </span><span class="st">&quot;enable and start nginx&quot;</span></a>
+<a class="sourceLine" id="cb24-2" data-line-number="2">  <span class="fu">service:</span></a>
+<a class="sourceLine" id="cb24-3" data-line-number="3">    <span class="fu">name:</span><span class="at"> </span><span class="st">&quot;nginx&quot;</span></a>
+<a class="sourceLine" id="cb24-4" data-line-number="4">    <span class="fu">enabled:</span><span class="at"> true</span></a>
+<a class="sourceLine" id="cb24-5" data-line-number="5">    <span class="fu">state:</span><span class="at"> </span><span class="st">&quot;started&quot;</span></a></code></pre></div>
 </div>
 <div id="nixos---a-configuration-management-tool-3" class="slide section level1">
 <h1>NixOS - A configuration management tool</h1>
-<ul class="incremental">
-<li>Reliable upgrades &amp; consistency</li>
-<li>Immutable OS, pinned to a specific git commit in your repo</li>
+<table>
+<tr>
+<td>
+<ul>
+<li>Immutable OS</li>
+<li>Delete some config =&gt; different hash =&gt; Different package</li>
 <li>Atomic upgrades and rollback (Your OS is just another Nix package!)</li>
 <li>INFRASTRUCTURE AS CODE. TRULY</li>
 </ul>
+</td>
+<td>
+<div class="sourceCode" id="cb25"><pre class="sourceCode nix"><code class="sourceCode bash"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="kw">{</span> <span class="ex">pkgs</span>, config, ... <span class="kw">}</span>:</a>
+<a class="sourceLine" id="cb25-2" data-line-number="2"><span class="kw">{</span></a>
+<a class="sourceLine" id="cb25-3" data-line-number="3">  <span class="ex">boot.grub.disk</span> = <span class="st">&quot;/dev/sda&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-4" data-line-number="4">  <span class="ex">services.sshd.enable</span> = true<span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-5" data-line-number="5">  <span class="ex">users.users.</span><span class="st">&quot;login-service&quot;</span> = {</a>
+<a class="sourceLine" id="cb25-6" data-line-number="6">    <span class="ex">isSystemUser</span> = true<span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-7" data-line-number="7">  <span class="kw">}</span>;</a>
+<a class="sourceLine" id="cb25-8" data-line-number="8">  <span class="ex">systemd.services.login-service</span> = {</a>
+<a class="sourceLine" id="cb25-9" data-line-number="9">    <span class="ex">wantedBy</span> = [ <span class="st">&quot;multi-user.target&quot;</span> ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-10" data-line-number="10">    <span class="ex">after</span> = [ <span class="st">&quot;network.target&quot;</span> ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-11" data-line-number="11">    <span class="ex">serviceConfig</span> = {</a>
+<a class="sourceLine" id="cb25-12" data-line-number="12">      <span class="ex">User</span> = config.users.users.<span class="st">&quot;login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-13" data-line-number="13">      <span class="ex">ExecStart</span> = <span class="st">&quot;@</span><span class="va">${pkgs</span><span class="er">.login</span><span class="va">-</span>service<span class="va">}</span><span class="st">/bin/login-service&quot;</span><span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-14" data-line-number="14">    };</a>
+<a class="sourceLine" id="cb25-15" data-line-number="15">  };</a>
+<a class="sourceLine" id="cb25-16" data-line-number="16">  <span class="ex">networking.firewall</span> = {</a>
+<a class="sourceLine" id="cb25-17" data-line-number="17">    <span class="bu">enable</span> = true<span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-18" data-line-number="18">    <span class="ex">allowedTCPPorts</span> = [ 80 22 ]<span class="kw">;</span></a>
+<a class="sourceLine" id="cb25-19" data-line-number="19">  }</a>
+<a class="sourceLine" id="cb25-20" data-line-number="20">}</a></code></pre></div>
+</td>
+</tr>
+</table>
 </div>
 <div id="nixos---a-configuration-management-tool-4" class="slide section level1">
 <h1>NixOS - A Configuration management tool</h1>
-<ul class="incremental">
+<ul>
 <li>Downside: You need to fully buy into Nix. hard to sell?</li>
 <li>In that case, just build Docker containers instead, like shown before</li>
 <li>Could for example us NixOS, to set up your kubernetes cluster</li>
@@ -365,7 +966,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <div id="nixops---infrastructure-management-tool" class="slide section level1">
 <h1>NixOps - infrastructure management tool</h1>
-<ul class="incremental">
+<ul>
 <li>Again, same problems of package mangement, arise in infrastructure management</li>
 <li>Before, people click around UI to create things</li>
 <li>Now, a pure function from datacenter description, to an actual datacenter!</li>
@@ -373,11 +974,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li>… Load balancers</li>
 <li>… DNS Records</li>
 <li>… Storage buckets</li>
+<li><strong>Check out commit from 5 years ago, get production environment from 5 years ago</strong></li>
 </ul>
+<p><img src="giphy.gif"></p>
 </div>
 <div id="downsides-of-nix" class="slide section level1">
 <h1>Downsides of Nix</h1>
-<ul class="incremental">
+<ul>
 <li>Steep learning curve. Thinking functionally is something to get used to</li>
 <li>You <em>Can not</em> do dirty hacks. You can’t go monkeypatch some python package in <code>/usr/lib/python</code>, or update <code>/etc/hosts</code> manually</li>
 <li>Ok.. maybe the above is a Pro. But it forces you to do things properly. Which might be slow</li>
@@ -386,9 +989,22 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li>However, this forces you to actually learn the tool, and gives great flexibility to you</li>
 </ul>
 </div>
-<div id="questions" class="slide section level1">
-<h1>Questions?</h1>
-<ul class="incremental">
+<div id="recap" class="slide section level1">
+<h1>Recap</h1>
+<ul>
+<li>Nix is a package manager</li>
+<li>Packages are immutable</li>
+<li>builds are isolated</li>
+<li>… are atomic</li>
+<li>… are reliable</li>
+<li>Easily share build environments with collegues</li>
+<li>Thousands of build environments available</li>
+<li>Is not docker, but works well with docker!</li>
+</ul>
+</div>
+<div id="thanks-questions" class="slide section level1">
+<h1>Thanks! Questions?</h1>
+<ul>
 <li><a href="https://nixos.org/nixos/nix-pills">https://nixos.org/nixos/nix-pills - Tutorial to get up to speed quickly with how nix works</a></li>
 <li><a href="https://nixos.org/nix" class="uri">https://nixos.org/nix</a></li>
 <li><a href="https://nixos.org/nixos" class="uri">https://nixos.org/nixos</a></li>
@@ -397,6 +1013,9 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <li><a href="https://twitter.com/ProgrammerDude">@ProgrammerDude - Stalk me on Twitter</a></li>
 <li><a href="https://github.com/arianvp">https://github.com/arianvp - Stalk me on Github</a></li>
 </ul>
+</div>
+<div id="bonus-hey-did-that-nginx-thingy-compile" class="slide section level1">
+<h1>Bonus: Hey did that nginx thingy compile?</h1>
 </div>
 </body>
 </html>

@@ -1,0 +1,34 @@
+#+TITLE: Nix
+* Current state of Affairs
+** Operating systems are built on *globals* and *mutation*
+** apt-get install nginx  just inplace mutates /usr/bin/nginx and /usr/lib/nginx/
+** In-place mutation can't be undone.
+** Only one version installed at the same time
+** What happens if "apt install" fails halfway through? => Inconsistent
+* Current state of Affairs
+** Install of one package, can break another, if you're not careful
+** Nothing  protects one package from editing the same folder as another package
+** Can not easily rollback to previous versions of the system
+* Current state of Affairs
+** Declarative system configurations (Saltstack, Ansible, Puppet, chef) are hard to get right.
+** They describe desired state, and try to keep your mutable environment consisten
+** However, 
+
+* Docker state of affairs
+* Derivations 
+** Like Makefile rules
+* Nix
+* But Arian, we use Docker for deployments!
+** Great! that's really awesome. there's lots of tooling.
+** Nix can build Docker images for you!
+ #+BEGIN_SRC nix
+ pkgs.dockerTools.buildImage {
+   name = "ing-auth";
+   tag  = "latest";
+   contents = (import ./ing-auth {});
+   config = {
+     Cmd = [ "/bin/run.sh" ];
+   };
+ }
+ #+END_SRC
+* Fin

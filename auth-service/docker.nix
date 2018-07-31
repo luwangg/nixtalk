@@ -6,7 +6,6 @@ in
   pkgs.dockerTools.buildImage {
     name = "login-service";
     config = {
-      Cmd = [ "${auth-service}/bin/login-service" ];
+      Cmd = [ "${auth-service}/bin/auth-service" ];
     };
   }
-
