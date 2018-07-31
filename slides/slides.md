@@ -824,9 +824,22 @@ CMD ["app.py"]
 ---
 
 # Solution? Docker
+
+<table>
+
+<tr>
+<td>
 * Docker is an ubiquitos distribution format.
+* Once it builds.. send it to the registry
 * Solves the "runs on my machine" problem
 * Does _not_ solve the "builds on my machine" problem
+</td>
+<td>
+<img src="works-on-my-docker.png">
+</td>
+</tr>
+
+</table>
 
 ---
 
