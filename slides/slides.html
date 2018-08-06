@@ -47,8 +47,8 @@ code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* Com
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
   </style>
   <link rel="stylesheet" type="text/css" media="screen, projection, print"
-    href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
-  <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+    href="http://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+  <script src="http://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
     charset="utf-8" type="text/javascript"></script>
 </head>
 <body>
@@ -84,6 +84,7 @@ Tom Bereknyei
 <li>My component used Boost version X, but another part of the system uses version Y.</li>
 <li>GNU Radio Companion can't find ...</li>
 <li>Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.</li>
+<li>Now do all of the above with RFNoC.</li>
 <li><strong>Insert story from the audience here</strong></li>
 </ul>
 </div>
@@ -178,6 +179,14 @@ instead of:
 <li>Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program</li>
 </ul>
 </div>
+<div id="demo-time-rfnoc" class="slide section level1">
+<h1>DEMO TIME: RFNoC</h1>
+<ul>
+<li>Build RFNoC. All dependencies down to USRP images are pinned.</li>
+<li>Cross-compile libraries and produce a bundle ready for installation, testing, and deployment</li>
+<li>This is still a work-in-progress, but the benefits of isolation are already apparent.</li>
+</ul>
+</div>
 <div id="important-takeaways" class="slide section level1">
 <h1>Important takeaways</h1>
 <ul>
@@ -253,15 +262,6 @@ instead of:
 <center>
 <img width="90%" src="after-update-openjdk.svg">
 </center>
-</div>
-<div id="so-why-a-programming-language" class="slide section level1">
-<h1>So why a programming language?</h1>
-<ul>
-<li>To build reusable constructs</li>
-<li>Comes with a large standard library of common build patterns</li>
-<li><code>./nixpkgs.nix</code> is a list of 10000+ packages the community already created <a href="https://github.com/nixos/nixpkgs" class="uri">https://github.com/nixos/nixpkgs</a></li>
-<li><code>stdenv</code> is a derivation that will automatically detect your project's build tool (<code>make</code>, <code>cmake</code>, <code>autotools</code>), and will generate that pesky <code>builder.sh</code> for us</li>
-</ul>
 </div>
 <div id="how-is-a-derivation-built" class="slide section level1">
 <h1>How is a derivation built</h1>
@@ -407,58 +407,42 @@ after_success:
 <li>Flowgraph tested on builders with SDR attached by running RX and TX.</li>
 </ul>
 </div>
-<div id="nixos---a-configuration-management-tool" class="slide section level1">
-<h1>NixOS - A Configuration management tool</h1>
+<div id="other-thoughts" class="slide section level1">
+<h1>Other thoughts:</h1>
 <ul>
-<li>Downside: You need to fully buy into Nix. hard to sell?</li>
-<li>In that case, just build Docker containers instead, like shown before</li>
-<li>Could for example us NixOS, to set up your kubernetes cluster</li>
-<li>Other collegues can keep existing Docker based images</li>
-<li>You can use Nix</li>
-</ul>
-</div>
-<div id="nixops---infrastructure-management-tool" class="slide section level1">
-<h1>NixOps - infrastructure management tool</h1>
-<ul>
-<li>Again, same problems of package mangement, arise in infrastructure management</li>
-<li>Before, people click around UI to create things</li>
-<li>Now, a pure function from datacenter description, to an actual datacenter!</li>
-<li>Create NixOS VMs</li>
-<li>... Load balancers</li>
-<li>... DNS Records</li>
-<li>... Storage buckets</li>
+<li>NixOS - A Configuration management tool</li>
+<li>NixOps - infrastructure management tool</li>
 <li><strong>Check out commit from 5 years ago, get production environment from 5 years ago</strong></li>
 </ul>
 <p><img src="giphy.gif"></p>
 </div>
-<div id="downsides-of-nix" class="slide section level1">
-<h1>Downsides of Nix</h1>
+<div id="downsides" class="slide section level1">
+<h1>Downsides</h1>
 <ul>
 <li>Steep learning curve. Thinking functionally is something to get used to</li>
 <li>You <em>Can not</em> do dirty hacks. You can't go monkeypatch some python package in <code>/usr/lib/python</code>, or update <code>/etc/hosts</code> manually</li>
-<li>Ok.. maybe the above is a Pro. But it forces you to do things properly. Which might be slow</li>
 <li>Install can get large, as multiple people have multiple versions of packages</li>
 <li>Documentation is ... not always great. &quot;Read the source code&quot; is a common philosophy among Nix'ers</li>
-<li>However, this forces you to actually learn the tool, and gives great flexibility to you</li>
+<li>Hardcoded paths and functionality in GRC, UHD, etc requires some manipulation and patching.</li>
 </ul>
 </div>
 <div id="recap" class="slide section level1">
 <h1>Recap</h1>
 <ul>
-<li>Nix is a package manager, and build system coordinator</li>
-<li>Packages are immutable</li>
-<li>builds are isolated</li>
-<li>... are atomic</li>
-<li>... are reliable</li>
-<li>Easily share build environments with collegues</li>
-<li>Thousands of build environments available</li>
+<li>Nix is a package manager, and build system coordinator.</li>
+<li>Build OOT modules in isolation with reliable dependency tracking.</li>
+<li>Test flowgraphs on a predicatble system.</li>
+<li>Easily share build environments with collegues.</li>
+<li>Thousands of build environments available.</li>
 <li>Is not docker, but works well with docker!</li>
+<li>Can be set up on 100% internal infrastructure.</li>
 </ul>
 </div>
 <div id="thanks-questions" class="slide section level1">
 <h1>Thanks! Questions?</h1>
 <ul>
 <li>[https://github.com/tomberek/nixtalk</li>
+<li>[https://github.com/tomberek/gnuradio-demo</li>
 <li><a href="https://nixos.org/nixos/nix-pills">https://nixos.org/nixos/nix-pills - Tutorial to get up to speed quickly with how nix works</a></li>
 <li><a href="https://nixos.org/nix" class="uri">https://nixos.org/nix</a></li>
 <li>Credits: presentation adopted from Arian van Putten</li>

@@ -33,6 +33,7 @@ author: Tom Bereknyei
 * My component used Boost version X, but another part of the system uses version Y.
 * GNU Radio Companion can't find ...
 * Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.
+* Now do all of the above with RFNoC.
 * **Insert story from the audience here**
 
 ---
@@ -135,6 +136,14 @@ instead of:
 
 ---
 
+# DEMO TIME: RFNoC
+
+* Build RFNoC. All dependencies down to USRP images are pinned.
+* Cross-compile libraries and produce a bundle ready for installation, testing, and deployment
+* This is still a work-in-progress, but the benefits of isolation are already apparent.
+
+---
+
 # Important takeaways
 
 * Each package is installed in its own unique path (think git commit hash)
@@ -224,16 +233,6 @@ add { x = a ; y = b}
 <center>
 <img width="90%" src="after-update-openjdk.svg">
 </center>
-
----
-
-# So why a programming language?
-* To build reusable constructs
-* Comes with a large standard library of common build patterns
-* `./nixpkgs.nix` is a list of 10000+ packages the community already created [https://github.com/nixos/nixpkgs](https://github.com/nixos/nixpkgs)
-* `stdenv` is a derivation that will automatically detect
-  your project's build tool (`make`, `cmake`, `autotools`), and
-  will generate that pesky `builder.sh` for us
 
 ---
 
@@ -395,51 +394,35 @@ in
 
 ---
 
-# NixOS - A Configuration management tool
-* Downside: You need to fully buy into Nix. hard to sell?
-* In that case, just build Docker containers instead, like shown before
-* Could for example us NixOS, to set up your kubernetes cluster
-* Other collegues can keep existing Docker based images
-* You can use Nix
-
----
-
-# NixOps - infrastructure management tool
-* Again, same problems of package mangement, arise in infrastructure management
-* Before, people click around UI to create things
-* Now, a pure function from datacenter description, to an actual datacenter!
-* Create NixOS VMs
-* ... Load balancers
-* ... DNS Records
-* ... Storage buckets
+# Other thoughts:
+* NixOS - A Configuration management tool
+* NixOps - infrastructure management tool
 * **Check out commit from 5 years ago, get production environment from  5 years ago**
 
 <img src="giphy.gif">
 
 ---
 
-# Downsides of Nix
+# Downsides
 * Steep learning curve. Thinking functionally is something to get used to
 * You _Can not_ do dirty hacks.  You can't go monkeypatch some python package in `/usr/lib/python`, or update `/etc/hosts` manually 
-* Ok.. maybe the above is a Pro. But it forces you to do things properly. Which might be slow
 * Install can get large, as multiple people have multiple versions of packages
 * Documentation is ... not always great. "Read the source code" is a common philosophy among Nix'ers
-* However, this forces you to actually learn the tool, and gives great flexibility to you
+* Hardcoded paths and functionality in GRC, UHD, etc requires some manipulation and patching.
 
 # Recap
 
-* Nix is a package manager, and build system coordinator
-* Packages are immutable
-* builds are isolated
-* ... are atomic
-* ... are reliable
-* Easily share build environments with collegues
-* Thousands of build environments available
+* Nix is a package manager, and build system coordinator.
+* Build OOT modules in isolation with reliable dependency tracking.
+* Test flowgraphs on a predicatble system.
+* Easily share build environments with collegues.
+* Thousands of build environments available.
 * Is not docker, but works well with docker!
-
+* Can be set up on 100% internal infrastructure.
 
 # Thanks! Questions?
 * [https://github.com/tomberek/nixtalk
+* [https://github.com/tomberek/gnuradio-demo
 * [https://nixos.org/nixos/nix-pills - Tutorial to get up to speed quickly with how nix works](https://nixos.org/nixos/nix-pills)
 * [https://nixos.org/nix](https://nixos.org/nix)
 * Credits: presentation adopted from Arian van Putten
