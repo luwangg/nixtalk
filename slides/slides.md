@@ -1,19 +1,16 @@
 ---
-title: "Nix Package manager"
-author: Arian van Putten
+title: "Using Nix to manage GNU Radio in a team setting"
+author: Tom Bereknyei
 ---
 
 
 ---
 
-# Assumptions about my audience
+# Intro
 
-<div class="incremental">
-* Used a GNU/Linux based OS like Ubuntu before?
-* If not, used Homebrew on Mac OS X before?
-* Familiar with Git?
-* Used Docker before? Hobby / Professional?
-* Familiar with / Heard of Nix?
+* Defense Digital Service: "SWAT team of nerds."
+* Me: Technical lead for several projects using GNU Radio in DoD
+* Assumptions: Intermediate-level user of GNU Radio and \*nix systems.
 </div>
 
 ---
@@ -23,54 +20,40 @@ author: Arian van Putten
 <div class="incremental">
 * If something isn't clear. Interrupt me
 * No really... Interrupt me
-* We're gonna have fun either way
-
-* Oh and I lied about the rafflers... because rafflers don't have many
-  dependencies!
 </div>
 
 
 ---
 
-# Build problems
-## A current state of affairs - (Raise hands if you had one of these issues!)
+# Build problems - current state of affairs
 
 <div class="incremental">
 
-* I build a project but it doesn't compile, whilst it did build on a collegues machine
-* I modified some file like `/usr/lib/nginx/nginx.conf` and now `apt upgrade` aborts, because
-  it tries to override an existing file.
-* I manually installed  `node` in `/usr/bin/node`, now `apt` installs it as a
-  dependency, and apt fails because it tries to override existing file
-* Computer runs out of battery during `apt upgrade`, and now my whole system is F*$#kd
+* I build a block but it doesn't compile, whilst it did build on a collegues machine
+* I installed `SOMETHING` into `/usr/bin`, but now interferes with stuff in `/usr/local/bin`.
+* I have both versions X and Y, but I can't seem to get things to link to version Y.
 * My package manager has version X, but I need version Y
+* My component used Boost version X, but another part of the system uses version Y.
+* GNU Radio Companion can't find ...
+* Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.
 * **Insert story from the audience here**
 
 </div>
 
 ---
 
+# Solutions
+
+* Use a VM and snapshots.
+* Docker scripts
+* "Just use this install script on a fresh Ubuntu installation."
+
+---
+
 # Challenge
 
-* Take a random commit from 5 years ago at your company
+* Take a random commit from 5 years ago along with all the changes in libraries, compilers, operating systems, etc.
 * Can you get the commit to build from scratch?
-
----
-
-# What is the root cause of all these issues?
-
----
-
-# What is the root cause of all these issues?
-
-## Mutability
-<center>
-<img src="current-flow.png" width="50%">
-</center>
-
-* `/usr` is a mutable directory
-* `/usr` is an implicit build input to all your projects
-</div>
 
 ---
 
@@ -85,139 +68,6 @@ author: Arian van Putten
 
 ---
 
-# Digression - Git
-* We decided that people editing the same files in the same Dropbox / fileshare is bad
-* I delete an file by accident, and now collegue wants it back
-* Version Control Systems were invented
-
----
-
-# Digression - Git
-## In Git, do we all edit the same directory? No!
-<pre><font color="#D33682">❯</font> git log --graph --decorate --all
-* <font color="#B58900">commit 24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9 (</font><font color="#93A1A1"><b>HEAD</b></font><font color="#B58900">)</font>
-<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:51 2018 +0200
-<font color="#DC322F">|</font> 
-<font color="#DC322F">|</font>     Implement feature C
-<font color="#DC322F">|</font> 
-* <font color="#B58900">commit 1e63d01b43dcdab7636f6e49a8c116b42dd7af8f</font>
-<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:45 2018 +0200
-<font color="#DC322F">|</font> 
-<font color="#DC322F">|</font>     Implement feature A
-<font color="#DC322F">|</font> 
-* <font color="#B58900">commit b5deb132c92bb39e99477432b62adea62dcca43c</font>
-Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-Date:   Mon Jul 30 13:34:35 2018 +0200
-
-    Initial commit
-</pre>
-
----
-
-
-# Digression - Git
-
-* Commits refer to content they contain
-* Each commit uniquely identifies an _immutable_ directory of files, stored in `.git/objects/<commit-id>`
-```
-commit-id(Implement feature A) =
-  sha1(.
-        ├── sha1(a)
-        ├── sha1(b
-        │        └── sha1(b.html))
-        └── sha1(c
-                └── sha1(a.java))
-
-$ tree ./git/objects/24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9
-  ./git/objects/24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9
-  ├── a
-  ├── b
-  │   └── b.html
-  └── c
-      └── a.java
-
-```
-
-* Current version of our Repo (`HEAD`) is just a symbollic link to such a commit
-* Can move back and forth using `git checkout <commit>`
-
-> P.S. I know I am lying a bit, but this is _morally_ true
-
---- 
-
-# Digression - Git
-## We simply change to which commit HEAD points, to rollback
-<pre><font color="#D33682">❯</font> git log --graph --decorate --all
-* <font color="#B58900">commit 24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9 (</font><font color="#93A1A1"><b>HEAD</b></font><font color="#B58900">)</font>
-<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:51 2018 +0200
-<font color="#DC322F">|</font> 
-<font color="#DC322F">|</font>     Implement feature C
-<font color="#DC322F">|</font> 
-* <font color="#B58900">commit 1e63d01b43dcdab7636f6e49a8c116b42dd7af8f</font>
-<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:45 2018 +0200
-<font color="#DC322F">|</font> 
-<font color="#DC322F">|</font>     Implement feature A
-<font color="#DC322F">|</font> 
-* <font color="#B58900">commit b5deb132c92bb39e99477432b62adea62dcca43c</font>
-Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-Date:   Mon Jul 30 13:34:35 2018 +0200
-
-    Initial commit
-</pre>
-```
-git checkout 24c1ad
-```
-
----
-
-# Digression - Git
-## We simply change to which commit HEAD points, to rollback
-<pre><font color="#D33682">❯</font> git log --graph --decorate --all
-* <font color="#B58900">commit 24c1ad70db1890dcc2b3dbaaa5a151adedaec0b9</font>
-<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:51 2018 +0200
-<font color="#DC322F">|</font> 
-<font color="#DC322F">|</font>     Implement feature C
-<font color="#DC322F">|</font> 
-* <font color="#B58900">commit 1e63d01b43dcdab7636f6e49a8c116b42dd7af8f (</font><font color="#93A1A1"><b>HEAD</b></font><font color="#B58900">)</font>
-<font color="#DC322F">|</font> Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-<font color="#DC322F">|</font> Date:   Mon Jul 30 13:34:45 2018 +0200
-<font color="#DC322F">|</font> 
-<font color="#DC322F">|</font>     Implement feature A
-<font color="#DC322F">|</font> 
-* <font color="#B58900">commit b5deb132c92bb39e99477432b62adea62dcca43c</font>
-Author: Arian van Putten &lt;aeroboy94@gmail.com&gt;
-Date:   Mon Jul 30 13:34:35 2018 +0200
-
-    Initial commit
-</pre>
-```
-git checkout 1e63d0
-```
-
-# Digression - Git
-## What problems does this method solve?
-* A commit uniquely identifies the state of your source repository
-* It will always do, because the repository is _immutable_
-* We can easily rollback
-* We are atomic: 2 users don't edit the same directory, they each edit their
-own little world, identified by a commit hash
-* You either observe a commit in its totality
-* Or *Not at all*
-* there is no "inbetween"
-
---- 
-
-# What do we want?
-* Reliable builds
-* ~~Isolation~~
-* ~~Atomic updates~~
-
-
 # Idea
 ## Lets make package managers work like git!
 
@@ -226,14 +76,13 @@ own little world, identified by a commit hash
 
 [https://nixos.org/~eelco/pubs/phd-thesis.pdf](https://nixos.org/~eelco/pubs/phd-thesis.pdf)
 
-
 ---
 
 # Idea
 ## Lets make package managers work like git!
 
 ```
-PREFIX= sha1(sha1(deps(package)) + sha1(src(package)) + sha1(options(package))
+PREFIX= sha256(sha256(deps(package)) + sha256(src(package)) + sha256(options(package))
 
 $PREFIX/bin , $PREFIX/lib  $PREFIX/share
 instead of:
@@ -259,7 +108,7 @@ instead of:
 * Declarative lanuage to describe package builds
 * Isolated build environments
 * Over 10000 packages and counting
-* Mac OS X / Linux / BSD  and Soon Windows Subsystem for Linux*
+* Mac OS X / Linux / BSD  and Soon Windows Subsystem for Linux\*
 * Source-based package manager (Like Gentoo)
 * But don't worry; also has a build cache
 </td>
@@ -271,87 +120,23 @@ instead of:
 
 ---
 
-# DEMO TIME: Installing a package
+# DEMO TIME: Basic install of gnuradio
+
+## Two styles
+
+* Imperative, similar to apt, brew, dpkg, etc.
+  `nix-env -i hello` or `nix-env -iA nixpkgs.hello`
+* Declarative, similar to Dockerfile, package.json, etc.
+  `default.nix` or `shell.nix`
+
+---
+
+# DEMO TIME: Basic install of gnuradio
 
 * To install a package, we build it from source, given a package description
-* `./nixpkgs.nix` is a file containing build instructions for all packages
-
-```
-nix-build ./nixpkgs.nix -A nginx
-tree /nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0
-sudo /nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0/bin/nginx
-curl http://localhost
-```
-
+* Nixpkgs is a set of expressions currated by the community.
 * Observation: It was instant? It didn't build anything from source?
 * Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program
-
----
-
-
-# nix-env 
-
-* Used to install software in $PATH
-
-```
-nix-env -f ./nixpkgs.nix -i  -A nginx
-sudo nginx
-which nginx
-tree /home/arian/.nix-profile
-nix-env -f ./nixpkgs.nix -i -A hello
-tree /home/arian/.nix-profile
-nix-env --rollback
-hello
-nix-env --rollback
-nginx
-```
-
-* Rollbacks possible?
-* How?!
-
----
-
-# nix-env
-## Atomic updates and rollbacks
-
-<pre>
-export PATH=/nix/var/nix/profiles/per-user/arian/<font color="green">profile</font>
-
-/nix/var/nix/profiles/per-user/arian
-├── <font color="green">profile</font> -> <font color="red">profile-1-link</font>
-│   
-├── <font color="red">profile-1-link -> /nix/store/7m5fi-user-environment
-│   └── bin -> /nix/store/2gk7-nginx-2.0.1/bin</font>
-│   
-└── <font color="magenta">profile-2-link -> /nix/store/34hia-user-environment
-    └── bin
-        ├── hello -> /nix/store/i5h55-hello-1.14.0/bin/hello
-        └── nginx ->  /nix/store/2gk7-nginx-2.0.1/bin/nginx</font>
-</pre>
-
-* This is _exactly_ the same as `HEAD` in git!
-
----
-
-# nix-env
-## Atomic updates and rollbacks
-
-<pre>
-export PATH=/nix/var/nix/profiles/per-user/arian/<font color="green">profile</font>
-
-/nix/var/nix/profiles/per-user/arian
-├── <font color="green">profile</font> -> <font color="magenta">profile-2-link</font>
-│   
-├── <font color="red">profile-1-link -> /nix/store/7m5fi-user-environment
-│   └── bin -> /nix/store/2gk7-nginx-2.0.1/bin</font>
-│   
-└── <font color="magenta">profile-2-link -> /nix/store/34hia-user-environment
-    └── bin
-        ├── hello -> /nix/store/i5h55-hello-1.14.0/bin/hello
-        └── nginx ->  /nix/store/2gk7-nginx-2.0.1/bin/nginx</font>
-</pre>
-      
-* This is _exactly_ the same as `HEAD` in git!
 
 ---
 
@@ -365,24 +150,13 @@ export PATH=/nix/var/nix/profiles/per-user/arian/<font color="green">profile</fo
 
 ---
 
-# How does all this Black Magic work?
+# The Nix Language in 1 minute
 
-<center>
-<img src="dog.jpg" width="50%">
-</center>
-
---- 
-
-# The Nix  Language
 * Language of Nixfiles, which describes how to build packages
 * Think `Dockerfile` or `debinfo` file
 * Actually a proper programming language
 * JSON-like with templating, functions and variables
 * Side-effects only allowed _but_  only if we know the _output_ beforehand
-
----
-
-# The Nix Language in 1 minute
 
 ```nix
 "hello"
@@ -392,160 +166,11 @@ export PATH=/nix/var/nix/profiles/per-user/arian/<font color="green">profile</fo
 
 ```
 ```nix
-{
-  a = 5;
-  b = "yo";
-}
-```
-```nix
 a = 3
 b = 4
-add = {x, y}:  x + y // {x,y} => x + y in javascript
+add = {x, y}:  x + y
 add { x = a ; y = b}
-people = "Domcode";
-
-"Hello ${people}"
-
-import ./domcode.nix
 ```
-
-```nix
-derivation { /* package build instructions */ }
-```
-
----
-
-# The derivation function
-
-* derivation takes a build description
-* Builds the project
-* and returns where in /nix/store the project will installed
-
-<pre>
-lol =  derivation { name = "lol";  builder = "lol"; system = builtins.currentSystem; }
-"${lol}"
-<font color="#B58900">&quot;/nix/store/7kv2zhwjiyzlnfn0lv1fcyd0w8xzcd8r-lol&quot;</font>
-</pre>
-
-* Nix is lazy. no other package needed the "lol" package, so it wasn't built
-* We can force it to build
-<pre>
-:b lol  # basically the same as doing  nix-build in the commandline
-</pre>
-
-# The derivation function
-
-* How does the derivation function decide where to install?
-* **Hash of all its inputs, like git a commit!**
-
-```
-location =  /nix/store/sha256({ name = sha256("lol"); builder = sha256("lol")}) + name;
-         =  /nix/store/7kv2zhwjiyzlnfn0lv1fcyd0w8xzcd8r-lol
-```
-
-
----
-
-# An actual derivation
-
-<table>
-<thead>
-<th>default.nix</th>
-<th>builder.sh</th>
-</thead>
-<tr>
-<td>
-```nix
-derivation {
-  name = "login-service";
-
-  /* how to build */
-  builder = "${import ./bash.nix}/bin/bash";
-  args = [ "${./builder.sh}" ];
-
-  /* dependencies passed as env vars */
-  src = "${./LoginService.java}";
-  coreutils = "${import ./coreutils.nix}";
-  bash = "${import ./bash.nix}";
-  openjdk = "${import ./openjdk.nix}";
-  jre = "${import ./jre.nix}";
-  jzmq = "${import ./jzmq.nix}";
-
-  system = builtins.currentSystem;
-}
-```
-</td>
-<td>
-```bash
-export PATH=$coreutils/bin:$openjdk/bin
-cp $src LoginService.java
-javac -cp $jzmq/share/java/zmq.jar LoginService.java
-jar cfe LoginService.jar LoginService LoginService.class
-mkdir $out/bin
-mkdir $out/lib
-cp LoginService.jar $out/lib
-cat <<EOF >> $out/bin/login-service
-#!$bash/bin/bash
-$jre/bin/java -Djava.library.path="$jzmq/lib" \
-  -cp "$jzmq/share/java/zmq.jar:$out/lib/LoginService.jar" \
-  LoginService
-EOF
-chmod +x $out/bin/login-service
-```
-</td>
-</tr>
-</table>
-
----
-
-# An actual derivation
-
-<table>
-<thead>
-<th>default.nix</th>
-<th>builder.sh</th>
-</thead>
-<tr>
-<td>
-```nix
-derivation {
-  name = "login-service";
-
-  /* how to build */
-  builder = "/nix/store/81293812dhadshu-bash/bin/bash";
-  args = [ "/nix/store/adjk39213813-builder.sh" ];
-
-  /* dependencies passed as env vars */
-  src = "/nix/store/ads12hj3981-LoginService.java";
-  coreutils = "/nix/store/sij1873123-coreutils";
-  bash = "/nix/store/81293812dhadshu-bash";
-  openjdk = "/nix/store/13uwduoiqeuq-openjdk";
-  jre = "/nix/store/21uiuadiuqe-jre";
-  jzmq = "/nix/store/ajsdqueiq-jzmq";
-
-  system = builtins.currentSystem;
-}
-```
-</td>
-<td>
-```bash
-export PATH=$coreutils/bin:$openjdk/bin
-cp $src LoginService.java
-javac -cp $jzmq/share/java/zmq.jar LoginService.java
-jar cfe LoginService.jar LoginService LoginService.class
-mkdir $out
-cp LoginService.jar $out
-cat <<EOF >> $out/login-service
-#!$bash/bin/bash
-$jre/bin/java -Djava.library.path="$jzmq/lib" \
-  -cp "$jzmq/share/java/zmq.jar:$out/LoginService.jar" \
-  LoginService
-EOF
-chmod +x $out/login-service
-```
-</td>
-</tr>
-</table>
 
 ---
 
@@ -614,39 +239,11 @@ chmod +x $out/login-service
 * `stdenv` is a derivation that will automatically detect
   your project's build tool (`make`, `cmake`, `autotools`), and
   will generate that pesky `builder.sh` for us
-```nix
-let pkgs = import ./nixpkgs.nix
-in
-pkgs.stdenv.mkDerivation rec {
-  name = "jzmq-${version}";
-  version = "3.1.0";
-  src = fetchFromGitHub {
-    owner = "zeromq";
-    repo = "jzmq";
-    rev = "v${version}";
-    sha256 = "1wlzs604mgmqmrgpk4pljx2nrlxzdfi3r8k59qlm90fx8qkqkc63";
-  };
-  buildInputs = [ pkgs.zeromq3 pkgs.jdk ];
-```
 
----
-
-# So why a programming language?
-
-* Currate package sets
-  ```nix
-  let pkgs = import ./nixpkgs;
-  in filter (pkg: pkgs.meta.license !== pkgs.lib.licenses.AGPL3) 
-            pkgs
-  ```
-* Override existing packages and tweak them
-  ```nix
-  myNginx = nginx.override { openssl = libressl; }
-  ```
 ---
 
 # How is a derivation built
-* Source code is downloaded
+* Source code is downloaded, fetched, obtained.
 * Code is **checked against hash, otherwise abort**
 * A chroot (container) is setup, containing _just_ the build dependencies and source
 * No network access
@@ -671,77 +268,36 @@ pkgs.stdenv.mkDerivation rec {
 
 # Reliable builds
 
-* I am confident, that if I check out the Nix file of `nginx` from a year ago,
+* I am confident, that if I check out the Nix file of `gnuradio` from a year ago,
   it will build
 * It will build all old versions of dependencies from source, and then
-  build `nginx` from source
+  build `gnuradio` from source
 * Takes a long time. But **it _will_ work**
 
 ```
 cd nixpkgs-channels
 git log
-cat nginx.nix
-nix-build  nginx.nix
+nix build -f default.nix gnuradio
 ```
 ---
-
-# What do we want?
-* ~~Reliable builds~~
-* ~~Isolation~~
-* ~~Atomic updates~~
-* Not build everything from source? What the hell, Arian?
-
---- 
 
 # Build Cache
 
 * Remember, our build instructions uniquely determine where we install the package
 
-<pre>nix-repl&gt; &quot;${nginx}&quot;
-<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font></pre>
+<pre>nix-repl&gt; &quot;${gnuradio}&quot;
+<font color="#B58900">&quot;/nix/store/sqxmwvn33x39sjfr47spib74gi3cqffv-gnuradio-3.7.11&quot;</font></pre>
 
 * **We know _beforehand_ where our build is going to be put!**
 * Simply _ask_ if someone else already built it, and download it from there!
+* Trust?
 
-```perl
-if file_exists("${pkg}") {
-  return;
-} else if download("https://cache.nixos.org/${pkg}") {
-  return;
-} else {
-  build(pkg);
-}
-
-```
 
 --- 
 
 # Build Cache
 
-* Remember, our build instructions uniquely determine where we install the package
-
-<pre>nix-repl&gt; &quot;${nginx}&quot;
-<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font></pre>
-
-* **We know _beforehand_ where our build is going to be put!**
-* Simply _ask_ if someone else already built it, and download it from there!
-<code>
-<pre>
-if file_exists(<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font>) {
-  return;
-} else if download(<font color="#B58900">&quot;https://cache.nixos.org/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font>) {
-  return;
-} else {
-  build(pkg);
-}
-</pre>
-</code>
-
----
-
-# Build Cache
-
-* Can also be used privately, for company-internal packages
+* Can also be used privately, for internal packages
 
 <div class="incremental">
 * `nix build --store https://cache.nixos.org` (Default)
@@ -758,10 +314,11 @@ if file_exists(<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfa
 
 ---
 
-# Continious integration script
+# Continuous integration script
 
 * Typical Nix CI script
-```yaml
+
+```
 # .travis.yml
 language: nix
 script:
@@ -772,64 +329,13 @@ after_success:
 
 ---
 
-
-# How about docker?
-
-<center>
-<img src="Docker-logo-011.png" width="50%">
-</center>
-> Just put it in a damn container - <b>Lucas</b>
-
-
----
-
-# Docker?
-<table>
-<tr>
-<td>
-```docker
-FROM ubuntu:xenial
-RUN apt update -y && \
-    apt upgrade -y && \
-    apt install python3 \
-                python3-pip \ 
-                mysql-client \
-                liblapack-dev && \
-    pip3 install scipy \
-                 Flask \
-                 sqlalchemy
-COPY . /app
-WORKDIR /app
-ENTRYPOINT ["python3"]
-EXPOSE 8080
-CMD ["app.py"]
-
-```
-</td>
-<td>
-* Atomic
-* Isolated
-* But reliable?
-  -  Does xenial still exist?
-  -  What version packages do I get if I run "upgrade?"
-  -  What libs are installed by default on xenial?
-
-## Challenge
-* Can you take a random commit + Dockerfile from 5 years ago at your company and build
-  your project?
-</td>
-</tr>
-</table>
-
----
-
 # Solution? Docker
 
 <table>
 
 <tr>
 <td>
-* Docker is an ubiquitos distribution format.
+* Docker is an ubiquitous distribution format.
 * Once it builds.. send it to the registry
 * Solves the "runs on my machine" problem
 * Does _not_ solve the "builds on my machine" problem
@@ -859,10 +365,10 @@ CMD ["app.py"]
 ```nix
 let
   pkgs = import ../nixpkgs.nix;
-  login-service = import ./login-service.nix;
+  some-service = import ./some-service.nix;
 in
   pkgs.dockerTools.buildImage {
-    name = "login-service";
+    name = "some-service";
     config = {
       Cmd = [ "${login-service}/bin/login-service" ];
       Expose = [ 8080 ];
@@ -875,74 +381,25 @@ in
 
 ---
 
-# NixOS - A configuration management tool
-## Problems with existing tools like Chef / Ansible / Puppet
-* Just like with package management, output state depends on current state
-* Your playbooks might depend on implicit state
-* Playbooks might diverge with what is actually on the system
-* Package manager might even _fight_ against the configuration manager!
+# Possibiliites
+
+* Reproducible builds on local machines.
+* Reproducible builds on CI with testing.
+* Cross-compile to other architectures.
+* Distributed builds. Build natively on other architectures.
+* Testing.
 
 ---
 
-# NixOS - A configuration management tool
-## Anecdote 1
-* Ansible modifies `/etc/nginx/nginx.conf`
-* Ansible enabled auto upgrades of packages
-* Upgrade of apt overrides `/etc/nginx/nginx.conf
-* Stuff silently fails
-* Rerun ansible,  stuff converges again...
+# End state
 
----
-
-# NixOS - A configuration management tool
-## Anecdote 2
-* If you remove a line in Ansible, nothing happens!
-```yaml
-- name: "enable and start nginx"
-  service:
-    name: "nginx"
-    enabled: true
-    state: "started"
-```
-
----
-
-# NixOS - A configuration management tool
-
-<table>
-<tr>
-<td>
-* Immutable OS
-* Delete some config => different hash => Different package
-* Atomic upgrades and rollback (Your OS is just another Nix package!)
-* INFRASTRUCTURE AS CODE. TRULY
-</td>
-<td>
-```nix
-{ pkgs, config, ... }:
-{
-  boot.grub.disk = "/dev/sda";
-  services.sshd.enable = true;
-  users.users."login-service" = {
-    isSystemUser = true;
-  };
-  systemd.services.login-service = {
-    wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
-    serviceConfig = {
-      User = config.users.users."login-service";
-      ExecStart = "@${pkgs.login-service}/bin/login-service";
-    };
-  };
-  networking.firewall = {
-    enable = true;
-    allowedTCPPorts = [ 80 22 ];
-  }
-}
-```
-</td>
-</tr>
-</table>
+* Each push to staging and master compiles all dependencies (cached).
+* Flowgraph tested in QEMU VM on recorded data.
+* Distributed ARM builders connected via VPN.
+* Docker containers built, tested.
+* .deb packages created bundling all dependecies, service configurations, udev rules, nginx, etc.
+* .deb installation tested
+* Flowgraph tested on builders with SDR attached by running RX and TX.
 
 ---
 
@@ -979,7 +436,7 @@ in
 
 # Recap
 
-* Nix is a package manager 
+* Nix is a package manager, and build system coordinator
 * Packages are immutable
 * builds are isolated
 * ... are atomic
@@ -990,13 +447,11 @@ in
 
 
 # Thanks! Questions?
+* [https://github.com/tomberek/nixtalk
 * [https://nixos.org/nixos/nix-pills - Tutorial to get up to speed quickly with how nix works](https://nixos.org/nixos/nix-pills)
 * [https://nixos.org/nix](https://nixos.org/nix)
-* [https://nixos.org/nixos](https://nixos.org/nixos)
-* [https://nixos.org/nixops](https://nixos.org/nixops)
-* [https://github.com/nixos](https://github.com/nixos)
-* [\@ProgrammerDude - Stalk me on Twitter](https://twitter.com/ProgrammerDude)
-* [https://github.com/arianvp - Stalk me on Github](https://github.com/arianvp)
+* Credits: presentation adopted from Arian van Putten
+* Before Ben asks, yes we have upstreamed bug-fixes, generic libraries not tied to the original mission, and this entire presentation plus demos are available on GitHub.
 
-# Bonus: Hey did that nginx thingy compile?
 
+# Bonus: Hey did gnuradio compile?
