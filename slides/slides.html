@@ -69,16 +69,13 @@ Tom Bereknyei
 </div>
 <div id="ask-questions" class="slide section level1">
 <h1>Ask questions!</h1>
-<div class="incremental">
 <ul>
 <li>If something isn't clear. Interrupt me</li>
 <li>No really... Interrupt me</li>
 </ul>
 </div>
-</div>
 <div id="build-problems---current-state-of-affairs" class="slide section level1">
 <h1>Build problems - current state of affairs</h1>
-<div class="incremental">
 <ul>
 <li>I build a block but it doesn't compile, whilst it did build on a collegues machine</li>
 <li>I installed <code>SOMETHING</code> into <code>/usr/bin</code>, but now interferes with stuff in <code>/usr/local/bin</code>.</li>
@@ -89,7 +86,6 @@ Tom Bereknyei
 <li>Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.</li>
 <li><strong>Insert story from the audience here</strong></li>
 </ul>
-</div>
 </div>
 <div id="solutions" class="slide section level1">
 <h1>Solutions</h1>
@@ -180,22 +176,6 @@ instead of:
 <li>Nixpkgs is a set of expressions currated by the community.</li>
 <li>Observation: It was instant? It didn't build anything from source?</li>
 <li>Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program</li>
-</ul>
-</div>
-<div id="nix-env" class="slide section level1">
-<h1>nix-env</h1>
-<ul>
-<li>Used to install software in $PATH</li>
-</ul>
-<pre><code>nix-env -iA nixpkgs.hello
-tree /home/dev/.nix-profile
-
-hello # success
-nix-env --rollback
-hello # fails</code></pre>
-<ul>
-<li>Rollbacks possible?</li>
-<li>How?!</li>
 </ul>
 </div>
 <div id="important-takeaways" class="slide section level1">
@@ -312,7 +292,7 @@ hello # fails</code></pre>
 <h1>Reliable builds</h1>
 <ul>
 <li>I am confident, that if I check out the Nix file of <code>gnuradio</code> from a year ago, it will build</li>
-<li>It will build all old versions of dependencies from source, and then build <code>nginx</code> from source</li>
+<li>It will build all old versions of dependencies from source, and then build <code>gnuradio</code> from source</li>
 <li>Takes a long time. But <strong>it <em>will</em> work</strong></li>
 </ul>
 <pre><code>cd nixpkgs-channels
@@ -324,8 +304,8 @@ nix build -f default.nix gnuradio</code></pre>
 <ul>
 <li>Remember, our build instructions uniquely determine where we install the package</li>
 </ul>
-<pre>nix-repl&gt; &quot;${nginx}&quot;
-<font color="#B58900">&quot;/nix/store/i5h55rj3mhlad1vbp6rlwvacfafycl4p-nginx-1.14.0&quot;</font></pre>
+<pre>nix-repl&gt; &quot;${gnuradio}&quot;
+<font color="#B58900">&quot;/nix/store/sqxmwvn33x39sjfr47spib74gi3cqffv-gnuradio-3.7.11&quot;</font></pre>
 <ul>
 <li><strong>We know <em>beforehand</em> where our build is going to be put!</strong></li>
 <li>Simply <em>ask</em> if someone else already built it, and download it from there!</li>
@@ -335,25 +315,19 @@ nix build -f default.nix gnuradio</code></pre>
 <div id="build-cache-1" class="slide section level1">
 <h1>Build Cache</h1>
 <ul>
-<li>Can also be used privately, for internal packages</li>
-</ul>
-<div class="incremental">
-<ul>
+<li><p>Can also be used privately, for internal packages</p></li>
 <li><code>nix build --store https://cache.nixos.org</code> (Default)</li>
 <li><code>nix build --store s3://my-company-bucket</code></li>
 <li><code>nix build --store ssh://collegue-machine</code></li>
 <li><code>nix build --store file:///nfs/company-fileshare/</code></li>
-<li>BuildCache As A Service : <a href="https://cachix.org">https://cachix.org/</a></li>
-</ul>
-</div>
-<ul>
+<li><p>BuildCache As A Service : <a href="https://cachix.org">https://cachix.org/</a></p></li>
 <li>If a collegue already built some project</li>
 <li>... and you checkout the same git commit</li>
-<li>Then you don't have to rebuild everything! You just download it from the cache!</li>
+<li><p>Then you don't have to rebuild everything! You just download it from the cache!</p></li>
 </ul>
 </div>
-<div id="continious-integration-script" class="slide section level1">
-<h1>Continious integration script</h1>
+<div id="continuous-integration-script" class="slide section level1">
+<h1>Continuous integration script</h1>
 <ul>
 <li>Typical Nix CI script</li>
 </ul>
@@ -411,6 +385,28 @@ after_success:
 </tr>
 </table>
 </div>
+<div id="possibiliites" class="slide section level1">
+<h1>Possibiliites</h1>
+<ul>
+<li>Reproducible builds on local machines.</li>
+<li>Reproducible builds on CI with testing.</li>
+<li>Cross-compile to other architectures.</li>
+<li>Distributed builds. Build natively on other architectures.</li>
+<li>Testing.</li>
+</ul>
+</div>
+<div id="end-state" class="slide section level1">
+<h1>End state</h1>
+<ul>
+<li>Each push to staging and master compiles all dependencies (cached).</li>
+<li>Flowgraph tested in QEMU VM on recorded data.</li>
+<li>Distributed ARM builders connected via VPN.</li>
+<li>Docker containers built, tested.</li>
+<li>.deb packages created bundling all dependecies, service configurations, udev rules, nginx, etc.</li>
+<li>.deb installation tested</li>
+<li>Flowgraph tested on builders with SDR attached by running RX and TX.</li>
+</ul>
+</div>
 <div id="nixos---a-configuration-management-tool" class="slide section level1">
 <h1>NixOS - A Configuration management tool</h1>
 <ul>
@@ -449,7 +445,7 @@ after_success:
 <div id="recap" class="slide section level1">
 <h1>Recap</h1>
 <ul>
-<li>Nix is a package manager</li>
+<li>Nix is a package manager, and build system coordinator</li>
 <li>Packages are immutable</li>
 <li>builds are isolated</li>
 <li>... are atomic</li>

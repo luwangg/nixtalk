@@ -17,17 +17,14 @@ author: Tom Bereknyei
 
 # Ask questions!
 
-<div class="incremental">
 * If something isn't clear. Interrupt me
 * No really... Interrupt me
-</div>
 
 
 ---
 
 # Build problems - current state of affairs
 
-<div class="incremental">
 
 * I build a block but it doesn't compile, whilst it did build on a collegues machine
 * I installed `SOMETHING` into `/usr/bin`, but now interferes with stuff in `/usr/local/bin`.
@@ -37,8 +34,6 @@ author: Tom Bereknyei
 * GNU Radio Companion can't find ...
 * Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.
 * **Insert story from the audience here**
-
-</div>
 
 ---
 
@@ -299,13 +294,11 @@ nix build -f default.nix gnuradio
 
 * Can also be used privately, for internal packages
 
-<div class="incremental">
 * `nix build --store https://cache.nixos.org` (Default)
 * `nix build --store s3://my-company-bucket`
 * `nix build --store ssh://collegue-machine`
 * `nix build --store file:///nfs/company-fileshare/`
 * BuildCache As A Service : [https://cachix.org/](https://cachix.org)
-</div>
 
 * If a collegue already built some project
 * ... and you checkout the same git commit
@@ -332,7 +325,6 @@ after_success:
 # Solution? Docker
 
 <table>
-
 <tr>
 <td>
 * Docker is an ubiquitous distribution format.
