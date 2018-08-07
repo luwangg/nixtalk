@@ -116,7 +116,7 @@ instead of:
 
 ---
 
-# DEMO TIME: Basic install of gnuradio
+# DEMO0: Basic install of gnuradio
 
 ## Two styles
 
@@ -127,7 +127,7 @@ instead of:
 
 ---
 
-# DEMO TIME: Basic install of gnuradio
+# DEMO1: Basic install of gnuradio
 
 * To install a package, we build it from source, given a package description
 * Nixpkgs is a set of expressions currated by the community.
@@ -260,9 +260,9 @@ add { x = a ; y = b}
 
 ---
 
-# Reliable builds
+# DEMO2: Reliable builds
 
-* I am confident, that if I check out the Nix file of `gnuradio` from a year ago,
+* I am confident, that if I check out the Nix file of `gnuradio` from five years ago,
   it will build
 * It will build all old versions of dependencies from source, and then
   build `gnuradio` from source
