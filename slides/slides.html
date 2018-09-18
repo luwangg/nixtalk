@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Style-Type" content="text/css" />
   <meta name="generator" content="pandoc" />
   <meta name="author" content="Tom Bereknyei" />
-  <title>Using Nix to manage GNU Radio in a team setting</title>
+  <title>GNURadio ecosystem management with Nix</title>
   <style type="text/css">code{white-space: pre;}</style>
   <style type="text/css">
 div.sourceCode { overflow-x: auto; }
@@ -47,13 +47,13 @@ code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* Com
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
   </style>
   <link rel="stylesheet" type="text/css" media="screen, projection, print"
-    href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
-  <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+    href="./slidy.css" />
+  <script src="./slidy.js"
     charset="utf-8" type="text/javascript"></script>
 </head>
 <body>
 <div class="slide titlepage">
-  <h1 class="title">Using Nix to manage GNU Radio in a team setting</h1>
+  <h1 class="title">GNURadio ecosystem management with Nix</h1>
   <p class="author">
 Tom Bereknyei
   </p>
@@ -62,9 +62,9 @@ Tom Bereknyei
 <h1>Intro</h1>
 <ul>
 <li>Defense Digital Service: &quot;SWAT team of nerds.&quot;</li>
-<li>Me: Technical lead for several projects using GNU Radio in DoD</li>
-<li>Assumptions: Intermediate-level user of GNU Radio and *nix systems.
-</div></li>
+<li>Me: Technical lead for several projects using GNU Radio in DoD.</li>
+<li>Assumptions: Intermediate-level user of GNU Radio and *nix systems.</li>
+<li>Why: Because this vastly improved confidence in our software and improved our time to delivery</li>
 </ul>
 </div>
 <div id="ask-questions" class="slide section level1">
@@ -77,14 +77,15 @@ Tom Bereknyei
 <div id="build-problems---current-state-of-affairs" class="slide section level1">
 <h1>Build problems - current state of affairs</h1>
 <ul>
-<li>I build a block but it doesn't compile, whilst it did build on a collegues machine</li>
-<li>I installed <code>SOMETHING</code> into <code>/usr/bin</code>, but now interferes with stuff in <code>/usr/local/bin</code>.</li>
-<li>I have both versions X and Y, but I can't seem to get things to link to version Y.</li>
-<li>My package manager has version X, but I need version Y</li>
-<li>My component used Boost version X, but another part of the system uses version Y.</li>
+<li>It compiles on <em>my</em> machine</li>
+<li>I installed <code>SOMETHING</code> into <code>/usr/{bin,lib}</code>, but now interferes with stuff in <code>/usr/local/{bin,lib}</code></li>
+<li>I have both versions X and Y, but I can't seem to get things to link to version Y</li>
+<li>My package manager has version X, but I need version Y or patch it</li>
+<li>My component uses Boost version X, but another part of the my application uses version Y</li>
 <li>GNU Radio Companion can't find ...</li>
 <li>Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.</li>
-<li>Now do all of the above with RFNoC.</li>
+<li>Now cross-compile everything above</li>
+<li>Now do all of the above with RFNoC</li>
 <li><strong>Insert story from the audience here</strong></li>
 </ul>
 </div>
@@ -93,7 +94,8 @@ Tom Bereknyei
 <ul>
 <li>Use a VM and snapshots.</li>
 <li>Docker scripts</li>
-<li>&quot;Just use this install script on a fresh Ubuntu installation.&quot;</li>
+<li>&quot;Just use this install script on a fresh OS installation.&quot;</li>
+<li>Custom solutions: once it works, don't touch it.</li>
 </ul>
 </div>
 <div id="challenge" class="slide section level1">
@@ -112,7 +114,8 @@ Tom Bereknyei
 <li>Isolation</li>
 <li>Multiple versions of the same software should be able to run next to each other</li>
 <li>Atomic updates</li>
-<li>You either install something completely, or you do not install it al all</li>
+<li>You either install something completely, or you do not install it at all</li>
+<li>Experimentation without fear</li>
 </ul>
 </div>
 <div id="idea" class="slide section level1">
@@ -132,9 +135,6 @@ $PREFIX/bin , $PREFIX/lib  $PREFIX/share
 instead of:
 /usr/bin, /usr/lib/, /usr/share
 </code></pre>
-<center>
-<img src="desired-flow.png" width="50%">
-</center>
 <ul>
 <li>Dependencies change? =&gt; Installed in different prefix</li>
 <li>Source code change? =&gt; Installed in different prefix</li>
@@ -151,7 +151,7 @@ instead of:
 <li>Declarative lanuage to describe package builds</li>
 <li>Isolated build environments</li>
 <li>Over 10000 packages and counting</li>
-<li>Mac OS X / Linux / BSD and Soon Windows Subsystem for Linux*</li>
+<li>Mac OS X / GNU/Linux / BSD and Soon Windows Subsystem for Linux*</li>
 <li>Source-based package manager (Like Gentoo)</li>
 <li>But don't worry; also has a build cache</li>
 </ul>
@@ -162,29 +162,25 @@ instead of:
 <tr>
 </table>
 </div>
-<div id="demo0-basic-install-of-gnuradio" class="slide section level1">
-<h1>DEMO0: Basic install of gnuradio</h1>
+<div id="demo-0-basic-install-of-hello" class="slide section level1">
+<h1>DEMO 0: Basic install of hello</h1>
 <h2 id="two-styles">Two styles</h2>
 <ul>
-<li>Imperative, similar to apt, brew, dpkg, etc. <code>nix-env -i hello</code> or <code>nix-env -iA nixpkgs.hello</code></li>
+<li>Imperative, similar to apt, brew, dpkg, etc.
+<ul>
+<li><code>nix-env -i hello</code> or <code>nix-env -iA nixpkgs.hello</code></li>
+<li><code>nix-env -e hello</code></li>
+</ul></li>
 <li>Declarative, similar to Dockerfile, package.json, etc. <code>default.nix</code> or <code>shell.nix</code></li>
 </ul>
 </div>
-<div id="demo1-basic-install-of-gnuradio" class="slide section level1">
-<h1>DEMO1: Basic install of gnuradio</h1>
+<div id="demo-1-basic-install-of-gnuradio" class="slide section level1">
+<h1>DEMO 1: Basic install of gnuradio</h1>
 <ul>
 <li>To install a package, we build it from source, given a package description</li>
 <li>Nixpkgs is a set of expressions currated by the community.</li>
 <li>Observation: It was instant? It didn't build anything from source?</li>
 <li>Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program</li>
-</ul>
-</div>
-<div id="demo-time-rfnoc" class="slide section level1">
-<h1>DEMO TIME: RFNoC</h1>
-<ul>
-<li>Build RFNoC. All dependencies down to USRP images are pinned.</li>
-<li>Cross-compile libraries and produce a bundle ready for installation, testing, and deployment</li>
-<li>This is still a work-in-progress, but the benefits of isolation are already apparent.</li>
 </ul>
 </div>
 <div id="important-takeaways" class="slide section level1">
@@ -209,11 +205,13 @@ instead of:
 <div class="sourceCode"><pre class="sourceCode nix"><code class="sourceCode bash"><span class="st">&quot;hello&quot;</span>
 <span class="ex">1</span> + 3
 <span class="ex">./a/path</span>
-<span class="bu">[</span> <span class="st">&quot;i&quot;</span> 3 5<span class="bu"> ]</span></code></pre></div>
+<span class="bu">[</span> <span class="st">&quot;i&quot;</span> 3 5<span class="bu"> ]</span>
+<span class="kw">{</span> <span class="ex">x</span> = <span class="st">&quot;Hello&quot;</span><span class="kw">;</span> <span class="va">y=</span>42;<span class="kw">}</span></code></pre></div>
 <div class="sourceCode"><pre class="sourceCode nix"><code class="sourceCode bash"><span class="ex">a</span> = 3
 <span class="ex">b</span> = 4
-<span class="ex">add</span> = {x, y}:  <span class="ex">x</span> + y
-<span class="ex">add</span> { x = a <span class="kw">;</span> <span class="ex">y</span> = b}</code></pre></div>
+<span class="ex">thing</span> = { x = a<span class="kw">;</span>, <span class="ex">y</span> = b<span class="kw">;</span>}
+<span class="ex">add_struct</span> = {x, y}:  <span class="ex">x</span> + y
+<span class="ex">add_struct</span> thing  # Results in 7</code></pre></div>
 </div>
 <div id="graphical-representation-of-our-derivation" class="slide section level1">
 <h1>Graphical representation of our Derivation</h1>
@@ -263,6 +261,22 @@ instead of:
 <img width="90%" src="after-update-openjdk.svg">
 </center>
 </div>
+<div id="demo2-reliable-builds" class="slide section level1">
+<h1>DEMO2: Reliable builds</h1>
+<ul>
+<li>I am confident, that if I check out the Nix file of <code>gnuradio</code> from five years ago, it will build</li>
+<li>It will build all old versions of dependencies from source, and then build <code>gnuradio</code> from source</li>
+<li>Takes a long time. But <strong>it <em>will</em> work</strong></li>
+</ul>
+</div>
+<div id="demo-2" class="slide section level1">
+<h1>DEMO 2:</h1>
+<pre><code>commit 993dadd2136ffca9a6f81d7e4d6acd5116da83a0 (HEAD)
+Author: Franz Pletz &lt;fpletz@fnordicwalking.de&gt;
+Date:   Fri May 13 02:31:33 2016 +0200
+
+    gnuradio: 3.7.9.1 -&gt; 3.7.9.2</code></pre>
+</div>
 <div id="how-is-a-derivation-built" class="slide section level1">
 <h1>How is a derivation built</h1>
 <ul>
@@ -287,17 +301,6 @@ instead of:
 <li>If the internet changes, then the build fails. No implicit changes!</li>
 <li><strong>Reliable builds</strong></li>
 </ul>
-</div>
-<div id="demo2-reliable-builds" class="slide section level1">
-<h1>DEMO2: Reliable builds</h1>
-<ul>
-<li>I am confident, that if I check out the Nix file of <code>gnuradio</code> from five years ago, it will build</li>
-<li>It will build all old versions of dependencies from source, and then build <code>gnuradio</code> from source</li>
-<li>Takes a long time. But <strong>it <em>will</em> work</strong></li>
-</ul>
-<pre><code>cd nixpkgs-channels
-git log
-nix build -f default.nix gnuradio</code></pre>
 </div>
 <div id="build-cache" class="slide section level1">
 <h1>Build Cache</h1>
@@ -326,6 +329,34 @@ nix build -f default.nix gnuradio</code></pre>
 <li><p>Then you don't have to rebuild everything! You just download it from the cache!</p></li>
 </ul>
 </div>
+<div id="demo-3" class="slide section level1">
+<h1>DEMO 3:</h1>
+<h2 id="gnuradio-oot">GNURadio OOT</h2>
+<ul>
+<li>Reproducibly build a module</li>
+<li>Create a wrapped version of GNURadio</li>
+</ul>
+</div>
+<div id="demo-4" class="slide section level1">
+<h1>DEMO 4:</h1>
+<h2 id="gnuradio-oot-with-integration">GNURadio OOT with integration</h2>
+<p>Same as demo3, but</p>
+<ul>
+<li>remove GTK errors</li>
+<li>allow for inspectability in nix-shell</li>
+</ul>
+</div>
+<div id="demo-5-rfnoc" class="slide section level1">
+<h1>DEMO 5: RFNoC</h1>
+<ul>
+<li>Use provided toolchain</li>
+<li>Build UHD</li>
+<li>Build GNURadio</li>
+<li>Build gr-ettus</li>
+<li>All dependencies down to USRP images and glibc are pinned.</li>
+<li>Cross-compile libraries and produce a bundle ready for installation, testing, and deployment</li>
+</ul>
+</div>
 <div id="continuous-integration-script" class="slide section level1">
 <h1>Continuous integration script</h1>
 <ul>
@@ -337,6 +368,9 @@ script:
   - nix build . --store s3://company-bucket
 after_success:
   - nix copy . --to s3://company-bucket</code></pre>
+</div>
+<div id="demo-hydra" class="slide section level1">
+<h1>DEMO: Hydra</h1>
 </div>
 <div id="solution-docker" class="slide section level1">
 <h1>Solution? Docker</h1>
@@ -365,7 +399,7 @@ after_success:
 <li>Nix has support for building docker containers</li>
 <li>Copies your package + all its dependencies in a docker image</li>
 <li><strong>Bare image</strong>, no <code>FROM blah</code></li>
-<li>Super small</li>
+<li>Super small (not quite as small as Alpine)</li>
 <li>You can easily integrate Nix in existing docker-compose or Kubernetes projects!</li>
 </ul>
 </td>
@@ -398,21 +432,33 @@ after_success:
 <div id="end-state" class="slide section level1">
 <h1>End state</h1>
 <ul>
-<li>Each push to staging and master compiles all dependencies (cached).</li>
+<li>Each push to testing/staging/master compiles all dependencies (cached).</li>
+<li>Manages Python 2 and 3 applications, C, C++, GNURadio OOT, Javascript (npm/yarn).</li>
 <li>Flowgraph tested in QEMU VM on recorded data.</li>
 <li>Distributed ARM builders connected via VPN.</li>
-<li>Docker containers built, tested.</li>
-<li>.deb packages created bundling all dependecies, service configurations, udev rules, nginx, etc.</li>
-<li>.deb installation tested</li>
-<li>Flowgraph tested on builders with SDR attached by running RX and TX.</li>
+<li>Single fat binary bundled for OS agnostic deployment to GNU/Linux</li>
+<li>.deb packages created bundling all dependecies, systemd service configurations, udev rules, nginx, raster tiles for maps etc.</li>
+<li>.deb installation tested on fresh Ubuntu VM</li>
+<li>Docker containers built, tested, cached.</li>
+<li>Nix binary package cached on build server.</li>
+<li>Flowgraph tested on specific builders with SDR and other hardware attached.</li>
 </ul>
 </div>
 <div id="other-thoughts" class="slide section level1">
 <h1>Other thoughts:</h1>
 <ul>
-<li>NixOS - A Configuration management tool</li>
+<li>NixOS - OS based on simliar mechanisms to also track OS, configs, services, etc.</li>
+<li>Everything including kernel, kernel patches, DTBs, GRUB/U-Boot, etc all managed.</li>
 <li>NixOps - infrastructure management tool</li>
-<li><strong>Check out commit from 5 years ago, get production environment from 5 years ago</strong></li>
+<li>Deploy NixOS to cloud/local virtualization/environment declaratively. VPC, routes, security rules, key distribution, etc. (Terraform-ish)</li>
+<li>The build system, pipeline, and testing from previous slide are declaratively defined.</li>
+<li>Check out commit from 5 years ago, get production environment from 5 years ago</li>
+<li>Experimental</li>
+<li>Disnix - Nix for services, but can be on Windows, non-NixOS, etc.
+<ul>
+<li>Dydisnix - Distributed service deployment</li>
+<li>Dysnomia - Automated deployment of mutable components</li>
+</ul></li>
 </ul>
 <p><img src="giphy.gif"></p>
 </div>
@@ -420,10 +466,11 @@ after_success:
 <h1>Downsides</h1>
 <ul>
 <li>Steep learning curve. Thinking functionally is something to get used to</li>
-<li>You <em>Can not</em> do dirty hacks. You can't go monkeypatch some python package in <code>/usr/lib/python</code>, or update <code>/etc/hosts</code> manually</li>
-<li>Install can get large, as multiple people have multiple versions of packages</li>
+<li>You <em>can not</em> do dirty hacks. You can't go monkeypatch some python package in <code>/usr/lib/python</code>, or update <code>/etc/hosts</code> manually</li>
+<li>Unforgiving, enforces discipline</li>
+<li>Closure can get large, all dependencies included, nothing is used from host system other than POSIX <code>sh</code>.</li>
 <li>Documentation is ... not always great. &quot;Read the source code&quot; is a common philosophy among Nix'ers</li>
-<li>Hardcoded paths and functionality in GRC, UHD, etc requires some manipulation and patching.</li>
+<li>Hardcoded paths and functionality in GRC, UHD, etc requires some manipulation and patching. <em>Potential for improvement, PRs on the way</em>.</li>
 </ul>
 </div>
 <div id="recap" class="slide section level1">
@@ -433,7 +480,6 @@ after_success:
 <li>Build OOT modules in isolation with reliable dependency tracking.</li>
 <li>Test flowgraphs on a predicatble system.</li>
 <li>Easily share build environments with collegues.</li>
-<li>Thousands of build environments available.</li>
 <li>Is not docker, but works well with docker!</li>
 <li>Can be set up on 100% internal infrastructure.</li>
 </ul>

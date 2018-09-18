@@ -1,5 +1,5 @@
 ---
-title: "Using Nix to manage GNU Radio in a team setting"
+title: "GNURadio ecosystem management with Nix"
 author: Tom Bereknyei
 ---
 
@@ -9,9 +9,9 @@ author: Tom Bereknyei
 # Intro
 
 * Defense Digital Service: "SWAT team of nerds."
-* Me: Technical lead for several projects using GNU Radio in DoD
+* Me: Technical lead for several projects using GNU Radio in DoD.
 * Assumptions: Intermediate-level user of GNU Radio and \*nix systems.
-</div>
+* Why: Because this vastly improved confidence in our software and improved our time to delivery
 
 ---
 
@@ -26,14 +26,15 @@ author: Tom Bereknyei
 # Build problems - current state of affairs
 
 
-* I build a block but it doesn't compile, whilst it did build on a collegues machine
-* I installed `SOMETHING` into `/usr/bin`, but now interferes with stuff in `/usr/local/bin`.
-* I have both versions X and Y, but I can't seem to get things to link to version Y.
-* My package manager has version X, but I need version Y
-* My component used Boost version X, but another part of the system uses version Y.
+* It compiles on *my* machine
+* I installed `SOMETHING` into `/usr/{bin,lib}`, but now interferes with stuff in `/usr/local/{bin,lib}`
+* I have both versions X and Y, but I can't seem to get things to link to version Y
+* My package manager has version X, but I need version Y or patch it
+* My component uses Boost version X, but another part of the my application uses version Y
 * GNU Radio Companion can't find ...
 * Pip, virtualenv, setup.py, SWIG, PYTHONPATH, etc.
-* Now do all of the above with RFNoC.
+* Now cross-compile everything above
+* Now do all of the above with RFNoC
 * **Insert story from the audience here**
 
 ---
@@ -42,7 +43,8 @@ author: Tom Bereknyei
 
 * Use a VM and snapshots.
 * Docker scripts
-* "Just use this install script on a fresh Ubuntu installation."
+* "Just use this install script on a fresh OS installation."
+* Custom solutions: once it works, don't touch it.
 
 ---
 
@@ -60,7 +62,8 @@ author: Tom Bereknyei
 * Isolation
   - Multiple versions of the same software should be able to run next to each other
 * Atomic updates
-  - You either install something completely, or you do not install it al all
+  - You either install something completely, or you do not install it at all
+* Experimentation without fear
 
 ---
 
@@ -86,10 +89,6 @@ instead of:
 
 ```
 
-<center>
-<img src="desired-flow.png" width="50%">
-</center>
-
 * Dependencies change?   => Installed in different prefix
 * Source code change?    => Installed in different prefix
 * Build options change?  => Installed in different prefix
@@ -104,7 +103,7 @@ instead of:
 * Declarative lanuage to describe package builds
 * Isolated build environments
 * Over 10000 packages and counting
-* Mac OS X / Linux / BSD  and Soon Windows Subsystem for Linux\*
+* Mac OS X / GNU/Linux / BSD  and Soon Windows Subsystem for Linux\*
 * Source-based package manager (Like Gentoo)
 * But don't worry; also has a build cache
 </td>
@@ -116,64 +115,60 @@ instead of:
 
 ---
 
-# DEMO0: Basic install of gnuradio
+# DEMO 0: Basic install of hello
 
 ## Two styles
 
-* Imperative, similar to apt, brew, dpkg, etc.
-  `nix-env -i hello` or `nix-env -iA nixpkgs.hello`
-* Declarative, similar to Dockerfile, package.json, etc.
+- Imperative, similar to apt, brew, dpkg, etc.
+    - `nix-env -i hello` or `nix-env -iA nixpkgs.hello`
+    - `nix-env -e hello`
+- Declarative, similar to Dockerfile, package.json, etc.
   `default.nix` or `shell.nix`
 
 ---
 
-# DEMO1: Basic install of gnuradio
+# DEMO 1: Basic install of gnuradio
 
-* To install a package, we build it from source, given a package description
-* Nixpkgs is a set of expressions currated by the community.
-* Observation: It was instant? It didn't build anything from source?
-* Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program
-
----
-
-# DEMO TIME: RFNoC
-
-* Build RFNoC. All dependencies down to USRP images are pinned.
-* Cross-compile libraries and produce a bundle ready for installation, testing, and deployment
-* This is still a work-in-progress, but the benefits of isolation are already apparent.
+- To install a package, we build it from source, given a package description
+- Nixpkgs is a set of expressions currated by the community.
+- Observation: It was instant? It didn't build anything from source?
+- Not very user-friendly to type in the large /nix/store/bLAHBLAH/ when I want to run a program
 
 ---
+
 
 # Important takeaways
 
-* Each package is installed in its own unique path (think git commit hash)
-* Software is installed into profiles, which are symlinks to packages (think `HEAD`)
-* You can rollback to previous profiles, by changing a symlink (think `git checkout`)
-* This allows for atomic updates, because symlink changes are atomic
-* As an end user, not very different from `homebrew` or `apt`, except for rollbacks
+- Each package is installed in its own unique path (think git commit hash)
+- Software is installed into profiles, which are symlinks to packages (think `HEAD`)
+- You can rollback to previous profiles, by changing a symlink (think `git checkout`)
+- This allows for atomic updates, because symlink changes are atomic
+- As an end user, not very different from `homebrew` or `apt`, except for rollbacks
 
 ---
 
 # The Nix Language in 1 minute
 
-* Language of Nixfiles, which describes how to build packages
-* Think `Dockerfile` or `debinfo` file
-* Actually a proper programming language
-* JSON-like with templating, functions and variables
-* Side-effects only allowed _but_  only if we know the _output_ beforehand
+- Language of Nixfiles, which describes how to build packages
+- Think `Dockerfile` or `debinfo` file
+- Actually a proper programming language
+- JSON-like with templating, functions and variables
+- Side-effects only allowed _but_  only if we know the _output_ beforehand
 
 ```nix
 "hello"
 1 + 3
 ./a/path
 [ "i" 3 5 ]
+{ x = "Hello"; y=42;}
 
 ```
 ```nix
 a = 3
 b = 4
-add = {x, y}:  x + y
-add { x = a ; y = b}
+thing = { x = a;, y = b;}
+add_struct = {x, y}:  x + y
+add_struct thing  # Results in 7
 ```
 
 ---
@@ -236,6 +231,26 @@ add { x = a ; y = b}
 
 ---
 
+# DEMO2: Reliable builds
+
+- I am confident, that if I check out the Nix file of `gnuradio` from five years ago, it will build
+- It will build all old versions of dependencies from source, and then build `gnuradio` from source
+- Takes a long time. But **it _will_ work**
+
+---
+
+# DEMO 2:
+
+```
+commit 993dadd2136ffca9a6f81d7e4d6acd5116da83a0 (HEAD)
+Author: Franz Pletz <fpletz@fnordicwalking.de>
+Date:   Fri May 13 02:31:33 2016 +0200
+
+    gnuradio: 3.7.9.1 -> 3.7.9.2
+```
+
+---
+
 # How is a derivation built
 * Source code is downloaded, fetched, obtained.
 * Code is **checked against hash, otherwise abort**
@@ -260,20 +275,6 @@ add { x = a ; y = b}
 
 ---
 
-# DEMO2: Reliable builds
-
-* I am confident, that if I check out the Nix file of `gnuradio` from five years ago,
-  it will build
-* It will build all old versions of dependencies from source, and then
-  build `gnuradio` from source
-* Takes a long time. But **it _will_ work**
-
-```
-cd nixpkgs-channels
-git log
-nix build -f default.nix gnuradio
-```
----
 
 # Build Cache
 
@@ -306,6 +307,35 @@ nix build -f default.nix gnuradio
 
 ---
 
+# DEMO 3:
+
+## GNURadio OOT
+
+* Reproducibly build a module
+* Create a wrapped version of GNURadio
+
+# DEMO 4:
+
+## GNURadio OOT with integration
+
+Same as demo3, but 
+
+* remove GTK errors
+* allow for inspectability in nix-shell
+
+
+# DEMO 5: RFNoC
+
+* Use provided toolchain
+* Build UHD
+* Build GNURadio
+* Build gr-ettus
+* All dependencies down to USRP images and glibc are pinned.
+* Cross-compile libraries and produce a bundle ready for installation, testing, and deployment
+
+---
+
+
 # Continuous integration script
 
 * Typical Nix CI script
@@ -318,6 +348,10 @@ script:
 after_success:
   - nix copy . --to s3://company-bucket
 ```
+
+---
+
+# DEMO: Hydra 
 
 ---
 
@@ -348,7 +382,7 @@ after_success:
 * Nix has support for building docker containers
 * Copies your package + all its dependencies in a docker image
 * **Bare image**,  no `FROM blah`
-* Super small
+* Super small (not quite as small as Alpine)
 * You can easily integrate Nix in existing docker-compose or Kubernetes projects!
 </td>
 <td>
@@ -384,20 +418,30 @@ in
 
 # End state
 
-* Each push to staging and master compiles all dependencies (cached).
+* Each push to testing/staging/master compiles all dependencies (cached).
+* Manages Python 2 and 3 applications, C, C++, GNURadio OOT, Javascript (npm/yarn).
 * Flowgraph tested in QEMU VM on recorded data.
 * Distributed ARM builders connected via VPN.
-* Docker containers built, tested.
-* .deb packages created bundling all dependecies, service configurations, udev rules, nginx, etc.
-* .deb installation tested
-* Flowgraph tested on builders with SDR attached by running RX and TX.
+* Single fat binary bundled for OS agnostic deployment to GNU/Linux
+* .deb packages created bundling all dependecies, systemd service configurations, udev rules, nginx, raster tiles for maps etc.
+* .deb installation tested on fresh Ubuntu VM
+* Docker containers built, tested, cached.
+* Nix binary package cached on build server.
+* Flowgraph tested on specific builders with SDR and other hardware attached.
 
 ---
 
 # Other thoughts:
-* NixOS - A Configuration management tool
+* NixOS - OS based on simliar mechanisms to also track OS, configs, services, etc.
+  - Everything including kernel, kernel patches, DTBs, GRUB/U-Boot, etc all managed.
 * NixOps - infrastructure management tool
-* **Check out commit from 5 years ago, get production environment from  5 years ago**
+  - Deploy NixOS to cloud/local virtualization/environment declaratively. VPC, routes, security rules, key distribution, etc. (Terraform-ish)
+  - The build system, pipeline, and testing from previous slide are declaratively defined.
+  - Check out commit from 5 years ago, get production environment from 5 years ago
+* Experimental
+  - Disnix - Nix for services, but can be on Windows, non-NixOS, etc.
+    - Dydisnix - Distributed service deployment
+    - Dysnomia - Automated deployment of mutable components
 
 <img src="giphy.gif">
 
@@ -405,10 +449,11 @@ in
 
 # Downsides
 * Steep learning curve. Thinking functionally is something to get used to
-* You _Can not_ do dirty hacks.  You can't go monkeypatch some python package in `/usr/lib/python`, or update `/etc/hosts` manually 
-* Install can get large, as multiple people have multiple versions of packages
+* You _can not_ do dirty hacks.  You can't go monkeypatch some python package in `/usr/lib/python`, or update `/etc/hosts` manually 
+* Unforgiving, enforces discipline
+* Closure can get large, all dependencies included, nothing is used from host system other than POSIX `sh`.
 * Documentation is ... not always great. "Read the source code" is a common philosophy among Nix'ers
-* Hardcoded paths and functionality in GRC, UHD, etc requires some manipulation and patching.
+* Hardcoded paths and functionality in GRC, UHD, etc requires some manipulation and patching. *Potential for improvement, PRs on the way*.
 
 # Recap
 
@@ -416,7 +461,6 @@ in
 * Build OOT modules in isolation with reliable dependency tracking.
 * Test flowgraphs on a predicatble system.
 * Easily share build environments with collegues.
-* Thousands of build environments available.
 * Is not docker, but works well with docker!
 * Can be set up on 100% internal infrastructure.
 
