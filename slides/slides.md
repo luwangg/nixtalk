@@ -1,6 +1,8 @@
 ---
 title: "GNURadio ecosystem management with Nix"
 author: Tom Bereknyei
+
+
 ---
 
 
@@ -12,6 +14,7 @@ author: Tom Bereknyei
 * Me: Technical lead for several projects using GNU Radio in DoD.
 * Assumptions: Intermediate-level user of GNU Radio and \*nix systems.
 * Why: Because this vastly improved confidence in our software and improved our time to delivery
+* [https://hithub.com/tomberek/gnuradio-demo]()
 
 ---
 
